@@ -95,7 +95,8 @@ def get_data() -> pl.DataFrame:
         ["code", "doc_name_en", "doc_name_zh"]
     )
 
-    combined_sheet = None
+    combined_sheet: pl.DataFrame | None = None
+
     for sheet_name in sheet_names:
         sheet = pl.read_excel(raw_xlsx, sheet_name=sheet_name).with_columns(
             pl.all().cast(pl.Utf8)
@@ -107,11 +108,11 @@ def get_data() -> pl.DataFrame:
         sheet = sheet.join(
             source_sheet, left_on="Document", right_on="code", how="left"
         )
-        combined_sheet: pl.DataFrame = (
+        combined_sheet = (
             sheet if combined_sheet is None else pl.concat([combined_sheet, sheet])
         )
 
     if combined_sheet is None:
-        return pl.DataFrame()
+        raise RuntimeError("No sheets were processed. Check sheets.json and dataset.xlsx")
 
     return combined_sheet
