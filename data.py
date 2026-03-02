@@ -7,7 +7,7 @@ REPO = "MGFPKU/target_table"
 ASSET_NAME = "dataset.xlsx"
 
 
-def fetch_data():
+def fetch_raw_data() -> io.BytesIO:
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",

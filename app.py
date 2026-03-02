@@ -7,9 +7,9 @@ import io
 from table import output_paginated_table
 from details import render_detail
 from download import download_tab, send_to_email
-from data import fetch_data
+from data import fetch_raw_data
 
-raw_xlsx = fetch_data()
+raw_xlsx = fetch_raw_data()
 
 dfs = pl.read_excel(raw_xlsx, sheet_name=None)
 
