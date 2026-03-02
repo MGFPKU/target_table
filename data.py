@@ -8,6 +8,31 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO = "MGFPKU/target_table"
 ASSET_NAME = "dataset.xlsx"
 
+WANTED_COLS = [
+    "Metric",
+    "Direction",
+    "Target_Magnitude",
+    "Baseline_Year",
+    "Target_Year_or_Period",
+    "Target_Category",
+    "Document",
+]
+
+
+def promote_second_row_to_header(df: pl.DataFrame) -> pl.DataFrame:
+    """Use the first row of `df` as column names and drop that row.
+
+    Polars by default uses the first Excel row as column names. If the actual
+    headers live in the second Excel row (which becomes the first row of the
+    DataFrame), promote that row to be the DataFrame columns and remove it.
+    """
+    if df.height == 0:
+        return df
+    header_vals = [str(v) if v is not None else "" for v in df.row(0)]
+    df = df.slice(1)
+    df.columns = header_vals
+    return df
+
 
 def fetch_raw_data() -> io.BytesIO:
     headers = {
@@ -47,8 +72,9 @@ def fetch_raw_data() -> io.BytesIO:
     # 4️⃣ Load Excel into Polars
     return io.BytesIO(file_res.content)
 
+
 def get_sheet_names() -> tuple[list[str], str]:
-    with open('sheets.json', 'r', encoding='utf-8') as f:
+    with open("sheets.json", "r", encoding="utf-8") as f:
         dicts: dict = json.load(f)
     sheet_names: list[str] = dicts.get("sheets", [])[0]
     if not sheet_names:
@@ -58,10 +84,22 @@ def get_sheet_names() -> tuple[list[str], str]:
         raise RuntimeError("No source sheet specified in sheets.json")
     return sheet_names, source_sheet
 
+
 def get_data() -> pl.DataFrame:
 
-    sheet_names, source_sheet = get_sheet_names()
-
     raw_xlsx = fetch_raw_data()
-    dfs = pl.read_excel(raw_xlsx, sheet_name=None)
-    return dfs["Sheet1"]
+
+    sheet_names, source_sheet = get_sheet_names()
+    source_sheet = pl.read_excel(raw_xlsx, sheet_name=source_sheet)
+    source_sheet = promote_second_row_to_header(source_sheet)
+
+    sheet = None
+    for sheet_name in sheet_names:
+        sheet = pl.read_excel(raw_xlsx, sheet_name=sheet_name)
+        sheet = promote_second_row_to_header(sheet)
+        sheet = sheet.select(WANTED_COLS)
+
+    if sheet is None:
+        return pl.DataFrame()
+
+    return sheet
