@@ -25,12 +25,11 @@ app_ui = ui.page_fluid(
                     + sorted(df["Target_Year_or_Period"].unique().to_list()),
                 ),
                 ui.input_select(
-                    "year",
-                    i18n("年份"),
+                    "target_category",
+                    i18n("目标类型"),
                     choices=[i18n("全部")]
                     + sorted(
-                        df[i18n("时间")].str.slice(3, 4).unique().to_list(),
-                        reverse=True,
+                        df["Target_Category"].unique().to_list()
                     ),
                 ),
                 ui.input_text(
@@ -151,9 +150,9 @@ def server(input, output, session):
         data = df
         if input.target_horizon() != i18n("全部"):
             data = data.filter(pl.col(i18n("目标时间")) == input.target_horizon())
-        if input.year() != i18n("全部"):
+        if input.target_category() != i18n("全部"):
             data = data.filter(
-                pl.col(i18n("时间")).cast(str).str.slice(3, 4) == input.year()
+                pl.col("Target_Category") == input.target_category()
             )
         if input.keyword():
             keyword: str = input.keyword().lower().strip()
