@@ -141,7 +141,7 @@ def output_paginated_table(
                 font-weight: bold;
                 padding: 16px 8px;
                 border-bottom: 2px solid #ddd; /* Thick bottom border for header */
-                white-space: nowrap;
+                // white-space: nowrap; // Allow header to wrap if needed
             }
             .custom-table td {
                 border: 1px solid #eee;
@@ -172,31 +172,16 @@ def output_paginated_table(
                 word-break: break-word;
             }
 
-            /* Column widths: Time and Policy Type narrower, Policy wider */
-            .custom-table .col-时间,
-            .custom-table .col-Time {
+            /* Column widths: Direction, Target Year and Baseline Year narrower, Category wider */
+            .custom-table .col-Direction,
+            .custom-table .col-Target_Year_or_Period {
+                width: 90px;
+                min-width: 90px;
+            }
+
+            .custom-table .col-Baseline_Year {
                 width: 80px;
                 min-width: 80px;
-            }
-
-            .custom-table .col-政策类型,
-            .custom-table .col-Policy-Type {
-                width: 14%;
-            }
-
-            .custom-table .col-经济体,
-            .custom-table .col-Economy {
-                width: 12%;
-            }
-
-            .custom-table .col-发布主体,
-            .custom-table .col-Publisher {
-                width: 18%;
-            }
-
-            .custom-table .col-政策动态,
-            .custom-table .col-Policy {
-                width: auto;
             }
 
             .clickable-row {
