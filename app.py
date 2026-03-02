@@ -19,11 +19,6 @@ app_ui = ui.page_fluid(
             "tabview",
             ui.layout_columns(
                 ui.input_select(
-                    "region",
-                    i18n("经济体"),
-                    choices=[i18n("全部")] + all_regions,
-                ),
-                ui.input_select(
                     "target_horizon",
                     i18n("目标时间"),
                     choices=[i18n("全部")]
@@ -154,8 +149,6 @@ def server(input, output, session):
     def filtered():
         current_page.set(1)
         data = df
-        if input.region() != i18n("全部"):
-            data = data.filter(pl.col(i18n("经济体")).str.contains(input.region()))
         if input.target_horizon() != i18n("全部"):
             data = data.filter(pl.col(i18n("目标时间")) == input.target_horizon())
         if input.year() != i18n("全部"):
