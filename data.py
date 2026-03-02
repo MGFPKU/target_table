@@ -95,7 +95,7 @@ def get_data() -> pl.DataFrame:
         ["code", "doc_name_en", "doc_name_zh"]
     )
 
-    sheet = None
+    combined_sheet = None
     for sheet_name in sheet_names:
         sheet = pl.read_excel(raw_xlsx, sheet_name=sheet_name)
         sheet = sheet.with_columns(
@@ -105,8 +105,10 @@ def get_data() -> pl.DataFrame:
         sheet = sheet.join(
             source_sheet, left_on="Document", right_on="code", how="left"
         )
+        combined_sheet: pl.DataFrame = sheet if combined_sheet is None else pl.concat([combined_sheet, sheet])
 
-    if sheet is None:
+
+    if combined_sheet is None:
         return pl.DataFrame()
 
-    return sheet
+    return combined_sheet
