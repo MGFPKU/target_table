@@ -91,13 +91,20 @@ def get_data() -> pl.DataFrame:
 
     sheet_names, source_sheet = get_sheet_names()
     source_sheet = pl.read_excel(raw_xlsx, sheet_name=source_sheet)
-    source_sheet = promote_second_row_to_header(source_sheet)
+    source_sheet = promote_second_row_to_header(source_sheet).select(
+        ["code", "doc_name_en", "doc_name_zh"]
+    )
 
     sheet = None
     for sheet_name in sheet_names:
         sheet = pl.read_excel(raw_xlsx, sheet_name=sheet_name)
-        sheet = promote_second_row_to_header(sheet)
+        sheet = sheet.with_columns(
+            pl.col("Document").str.replace(r"\.[^.]+$", "").alias("Document")
+        )
         sheet = sheet.select(WANTED_COLS)
+        sheet = sheet.join(
+            source_sheet, left_on="Document", right_on="code", how="left"
+        )
 
     if sheet is None:
         return pl.DataFrame()
