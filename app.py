@@ -5,7 +5,6 @@ import polars as pl
 import io
 
 from table import output_paginated_table
-from details import render_detail
 from download import download_tab, send_to_email
 from data import get_data
 from i18n import i18n
@@ -134,7 +133,6 @@ app_ui = ui.page_fluid(
                 id="table_download",
             ),
         ),
-        ui.nav_panel("detail_view", ui.output_ui("detail_ui")),
         id="view",
     )
 )
@@ -192,14 +190,6 @@ def server(input, output, session):
         except Exception as e:
             print("⚠️ Error rendering table:", e)
             return ui.markdown(f"**Error rendering table:** `{e}`")
-
-    @output
-    @render.ui
-    def detail_ui():
-        if not focused_policy():
-            return ui.markdown(i18n("⚠️ 未找到政策详情。"))
-        row = df.filter(pl.col(i18n("政策动态")) == focused_policy())
-        return render_detail(row)
 
     @reactive.effect
     @reactive.event(input.download)
