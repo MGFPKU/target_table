@@ -7,22 +7,10 @@ import io
 from table import output_paginated_table
 from details import render_detail
 from download import download_tab, send_to_email
-from data import fetch_raw_data
+from data import get_data
+from i18n import i18n
 
-raw_xlsx = fetch_raw_data()
-
-dfs = pl.read_excel(raw_xlsx, sheet_name=None)
-
-df = (
-    raw_df.with_columns(
-        pl.col(i18n("时间"))
-        .str.strptime(pl.Date, "%m/%Y", strict=False)
-        .alias("parsed_time")
-    )
-    .reverse()
-    .sort("parsed_time", descending=True)
-    .drop(["parsed_time", i18n("新闻链接"), i18n("备注")])
-)
+df = get_data()
 
 # fix region tags
 regions: list[str] = df[i18n("经济体")].drop_nulls().to_list()
