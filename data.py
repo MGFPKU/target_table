@@ -119,4 +119,4 @@ def get_data() -> pl.DataFrame:
             "No sheets were processed. Check sheets.json and dataset.xlsx"
         )
 
-    return combined_sheet
+    return combined_sheet.fill_null("N/A")
