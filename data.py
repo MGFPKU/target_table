@@ -97,7 +97,9 @@ def get_data() -> pl.DataFrame:
 
     combined_sheet = None
     for sheet_name in sheet_names:
-        sheet = pl.read_excel(raw_xlsx, sheet_name=sheet_name)
+        sheet = pl.read_excel(raw_xlsx, sheet_name=sheet_name).with_columns(
+            pl.all().cast(pl.Utf8)
+        )
         sheet = sheet.with_columns(
             pl.col("Document").str.replace(r"\.[^.]+$", "").alias("Document")
         )
@@ -105,8 +107,9 @@ def get_data() -> pl.DataFrame:
         sheet = sheet.join(
             source_sheet, left_on="Document", right_on="code", how="left"
         )
-        combined_sheet: pl.DataFrame = sheet if combined_sheet is None else pl.concat([combined_sheet, sheet])
-
+        combined_sheet: pl.DataFrame = (
+            sheet if combined_sheet is None else pl.concat([combined_sheet, sheet])
+        )
 
     if combined_sheet is None:
         return pl.DataFrame()
