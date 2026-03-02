@@ -180,22 +180,11 @@ def server(input, output, session):
         # Rearrange and format data
         data: pl.DataFrame = (
             filtered()
-            .select(
-                (
-                    [
-                        i18n("经济体"),
-                        i18n("政策动态"),
-                        i18n("政策类型"),
-                        i18n("发布主体"),
-                        i18n("时间"),
-                    ]
-                )
-            )
-            .with_columns(
-                pl.col(i18n("时间"))
-                .str.strptime(pl.Date, "%m/%Y", strict=False)
-                .dt.strftime("%Y-%m")
-            )
+            # .with_columns(
+            #     pl.col(i18n("时间"))
+            #     .str.strptime(pl.Date, "%m/%Y", strict=False)
+            #     .dt.strftime("%Y-%m")
+            # )
         )
         try:
             table: Tag = output_paginated_table("mytable", data, page=current_page())
