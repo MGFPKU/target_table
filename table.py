@@ -158,20 +158,6 @@ def output_paginated_table(
                 border-right: none;
             }
 
-            /* Allow wrapping for Policy column (政策动态/Policy) */
-            .custom-table .col-政策动态,
-            .custom-table .col-Policy {
-                white-space: normal;
-                word-break: break-word;
-            }
-
-            /* Allow wrapping for Publisher column (发布主体/Publisher) */
-            .custom-table .col-发布主体,
-            .custom-table .col-Publisher {
-                white-space: normal;
-                word-break: break-word;
-            }
-
             /* Column widths: Direction, Target Year and Baseline Year narrower, Category wider */
             .custom-table .col-Direction,
             .custom-table .col-Target_Year_or_Period {
