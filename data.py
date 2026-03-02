@@ -98,8 +98,10 @@ def get_data() -> pl.DataFrame:
     combined_sheet: pl.DataFrame | None = None
 
     for sheet_name in sheet_names:
-        sheet = pl.read_excel(raw_xlsx, sheet_name=sheet_name).with_columns(
-            pl.all().cast(pl.Utf8)
+        sheet = (
+            pl.read_excel(raw_xlsx, sheet_name=sheet_name)
+            .with_columns(pl.all().cast(pl.Utf8))
+            .filter(pl.col("Count") != "r")
         )
         sheet = sheet.with_columns(
             pl.col("Document").str.replace(r"\.[^.]+$", "").alias("Document")
@@ -113,6 +115,8 @@ def get_data() -> pl.DataFrame:
         )
 
     if combined_sheet is None:
-        raise RuntimeError("No sheets were processed. Check sheets.json and dataset.xlsx")
+        raise RuntimeError(
+            "No sheets were processed. Check sheets.json and dataset.xlsx"
+        )
 
     return combined_sheet
