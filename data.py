@@ -1,5 +1,7 @@
 import os, io
 import requests
+import polars as pl
+import json
 
 # Dataset info ----
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -44,3 +46,22 @@ def fetch_raw_data() -> io.BytesIO:
 
     # 4️⃣ Load Excel into Polars
     return io.BytesIO(file_res.content)
+
+def get_sheet_names() -> tuple[list[str], str]:
+    with open('sheets.json', 'r', encoding='utf-8') as f:
+        dicts: dict = json.load(f)
+    sheet_names: list[str] = dicts.get("sheets", [])[0]
+    if not sheet_names:
+        raise RuntimeError("No sheet names found in sheets.json")
+    source_sheet: str = dicts.get("source", "")
+    if source_sheet == "":
+        raise RuntimeError("No source sheet specified in sheets.json")
+    return sheet_names, source_sheet
+
+def get_data() -> pl.DataFrame:
+
+    sheet_names, source_sheet = get_sheet_names()
+
+    raw_xlsx = fetch_raw_data()
+    dfs = pl.read_excel(raw_xlsx, sheet_name=None)
+    return dfs["Sheet1"]
