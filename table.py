@@ -94,8 +94,10 @@ def output_paginated_table(
     end = start + per_page
     slice_df = df[start:end, :6]  # first 6 columns only
 
-    # Header
-    thead = tags.thead(tags.tr(*(tags.th(col, class_=_col_class(col)) for col in slice_df.columns)))
+    # Header (display underscores as spaces)
+    thead = tags.thead(
+        tags.tr(*(tags.th(col.replace("_", " "), class_=_col_class(col)) for col in slice_df.columns))
+    )
 
     # Rows
     tbody = tags.tbody()
