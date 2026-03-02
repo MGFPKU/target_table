@@ -12,13 +12,6 @@ from i18n import i18n
 
 df = get_data()
 
-# fix region tags
-regions: list[str] = df[i18n("经济体")].drop_nulls().to_list()
-# Split by '；', strip whitespace, flatten
-all_regions = sorted(
-    set(r.strip() for entry in regions for r in entry.split(i18n("；")))
-)
-
 # compile ui
 app_ui = ui.page_fluid(
     ui.navset_hidden(
