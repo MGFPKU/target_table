@@ -5,6 +5,7 @@ description = "Policy Target Dataset Explorer — Shiny for Python web app to br
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastexcel>=0.19.0",
     "httpx>=0.28.1",
     "polars>=1.35.0",
     "requests>=2.32.3",
