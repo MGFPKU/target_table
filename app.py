@@ -36,6 +36,8 @@ def fetch_data():
     if asset is None:
         raise RuntimeError("dataset.xlsx not found in latest release.")
 
+    asset_id = asset["id"]
+
     # 3️⃣ Download asset binary
     download_headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
