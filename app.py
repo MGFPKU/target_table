@@ -149,7 +149,7 @@ def server(input, output, session):
         current_page.set(1)
         data = df
         if input.target_horizon() != i18n("全部"):
-            data = data.filter(pl.col(i18n("目标时间")) == input.target_horizon())
+            data = data.filter(pl.col("Target_Year_or_Period") == input.target_horizon())
         if input.target_category() != i18n("全部"):
             data = data.filter(
                 pl.col("Target_Category") == input.target_category()
