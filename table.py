@@ -202,10 +202,6 @@ def output_paginated_table(
                 transition: background-color 0.2s;
             }
 
-            .clickable-row:hover {
-                background-color: rgba(13, 97, 72, 0.1);
-            }
-
             .clickable-row td {
                 /* Ensures no text underlines or color overrides interfere */
                 color: black;
