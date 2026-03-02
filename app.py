@@ -24,10 +24,10 @@ app_ui = ui.page_fluid(
                     choices=[i18n("全部")] + all_regions,
                 ),
                 ui.input_select(
-                    "type",
-                    i18n("政策类型"),
+                    "target_horizon",
+                    i18n("目标时间"),
                     choices=[i18n("全部")]
-                    + sorted(df[i18n("政策类型")].unique().to_list()),
+                    + sorted(df["Target_Year_or_Period"].unique().to_list()),
                 ),
                 ui.input_select(
                     "year",
@@ -156,8 +156,8 @@ def server(input, output, session):
         data = df
         if input.region() != i18n("全部"):
             data = data.filter(pl.col(i18n("经济体")).str.contains(input.region()))
-        if input.type() != i18n("全部"):
-            data = data.filter(pl.col(i18n("政策类型")) == input.type())
+        if input.target_horizon() != i18n("全部"):
+            data = data.filter(pl.col(i18n("目标时间")) == input.target_horizon())
         if input.year() != i18n("全部"):
             data = data.filter(
                 pl.col(i18n("时间")).cast(str).str.slice(3, 4) == input.year()
