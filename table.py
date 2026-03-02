@@ -190,11 +190,12 @@ if __name__ == "__main__":
     # Example usage
     df = pl.DataFrame(
         {
-            "经济体": ["A", "B", "C"] * 5,
-            "政策动态": ["Policy 1", "Policy 2", "Policy 3"] * 5,
-            "政策类型": ["Type 1", "Type 2", "Type 3"] * 5,
-            "发布主体": ["Agency A", "Agency B", "Agency C"] * 5,
-            "时间": ["2021-01-01", "2021-02-01", "2021-03-01"] * 5,
+            "Metric": ["A", "B", "C"] * 5,
+            "Direction": ["Up", "Down", "Neutral"] * 5,
+            "Target_Magnitude": [10, 20, 30] * 5,
+            "Baseline_Year": [2000, 2005, 2010] * 5,
+            "Target_Year_or_Period": ["2025", "2030", "2025-2030"] * 5,
+            "Target_Category": ["Energy", "Transport", "Industry"] * 5,
         }
     )
 
