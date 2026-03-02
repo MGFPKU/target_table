@@ -223,12 +223,6 @@ def server(input, output, session):
         # Step 2: Send Excel to email
         await send_to_email(input, session, "xlsx", buffer.getvalue())
 
-    @reactive.Effect
-    def on_click():
-        if input.mytable():
-            focused_policy.set(input.mytable())
-            ui.update_navs("view", selected="detail_view")
-
     @reactive.effect
     @reactive.event(input.mytable_page)
     async def _():
