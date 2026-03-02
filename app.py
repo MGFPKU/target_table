@@ -8,41 +8,68 @@ import requests
 from table import output_paginated_table
 from details import render_detail
 from download import download_tab, send_to_email
-from i18n import i18n, LANG
 
 # Dataset info ----
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO = "MGFPKU/MGF_dataset_scraping"
-FILE_PATH: str = "data/data.csv" if LANG == "CN" else "data/data_en.csv"
-BRANCH = "main"
+REPO = "MGFPKU/target_table"
+ASSET_NAME = "dataset.xlsx"
+
 
 def fetch_data():
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3.raw",
+        "Accept": "application/vnd.github+json",
     }
 
-    api_url = f"https://api.github.com/repos/{REPO}/contents/{FILE_PATH}?ref={BRANCH}"
-    res = requests.get(api_url, headers=headers)
+    # 1️⃣ Get latest release metadata
+    latest_url = f"https://api.github.com/repos/{REPO}/releases/latest"
+    res = requests.get(latest_url, headers=headers)
+
     if res.status_code != 200:
         raise RuntimeError(f"Failed to fetch file: {res.status_code}\n{res.text}")
-    return pl.read_csv(io.StringIO(res.text))
+
+    release = res.json()
+
+    # 2️⃣ Find the asset
+    asset = next((a for a in release["assets"] if a["name"] == ASSET_NAME), None)
+
+    if asset is None:
+        raise RuntimeError("dataset.xlsx not found in latest release.")
+
+    # 3️⃣ Download asset binary
+    download_headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/octet-stream",
+    }
+
+    download_url = f"https://api.github.com/repos/{REPO}/releases/assets/{asset_id}"
+    file_res = requests.get(download_url, headers=download_headers)
+
+    if file_res.status_code != 200:
+        raise RuntimeError(f"Failed to download file:\n{file_res.text}")
+
+    # 4️⃣ Load Excel into Polars
+    return io.BytesIO(file_res.content)
 
 
 raw_df = fetch_data()
 df = (
     raw_df.with_columns(
-        pl.col(i18n("时间")).str.strptime(pl.Date, "%m/%Y", strict=False).alias("parsed_time")
+        pl.col(i18n("时间"))
+        .str.strptime(pl.Date, "%m/%Y", strict=False)
+        .alias("parsed_time")
     )
     .reverse()
     .sort("parsed_time", descending=True)
-    .drop(["parsed_time", i18n("新闻链接"),i18n("备注")])
+    .drop(["parsed_time", i18n("新闻链接"), i18n("备注")])
 )
 
 # fix region tags
 regions: list[str] = df[i18n("经济体")].drop_nulls().to_list()
 # Split by '；', strip whitespace, flatten
-all_regions = sorted(set(r.strip() for entry in regions for r in entry.split(i18n("；"))))
+all_regions = sorted(
+    set(r.strip() for entry in regions for r in entry.split(i18n("；")))
+)
 
 # compile ui
 app_ui = ui.page_fluid(
@@ -58,15 +85,21 @@ app_ui = ui.page_fluid(
                 ui.input_select(
                     "type",
                     i18n("政策类型"),
-                    choices=[i18n("全部")] + sorted(df[i18n("政策类型")].unique().to_list()),
+                    choices=[i18n("全部")]
+                    + sorted(df[i18n("政策类型")].unique().to_list()),
                 ),
                 ui.input_select(
                     "year",
                     i18n("年份"),
                     choices=[i18n("全部")]
-                    + sorted(df[i18n("时间")].str.slice(3, 4).unique().to_list(), reverse=True),
+                    + sorted(
+                        df[i18n("时间")].str.slice(3, 4).unique().to_list(),
+                        reverse=True,
+                    ),
                 ),
-                ui.input_text(id="keyword", label=i18n("关键词"), placeholder=i18n("请输入关键词")),
+                ui.input_text(
+                    id="keyword", label=i18n("关键词"), placeholder=i18n("请输入关键词")
+                ),
                 ui.div(
                     ui.div(
                         "下载",
@@ -163,7 +196,7 @@ app_ui = ui.page_fluid(
                     ui.output_ui(id="table_ui"),
                 ),
                 download_tab,
-                id = "table_download",
+                id="table_download",
             ),
         ),
         ui.nav_panel("detail_view", ui.output_ui("detail_ui")),
@@ -185,7 +218,9 @@ def server(input, output, session):
         if input.type() != i18n("全部"):
             data = data.filter(pl.col(i18n("政策类型")) == input.type())
         if input.year() != i18n("全部"):
-            data = data.filter(pl.col(i18n("时间")).cast(str).str.slice(3, 4) == input.year())
+            data = data.filter(
+                pl.col(i18n("时间")).cast(str).str.slice(3, 4) == input.year()
+            )
         if input.keyword():
             keyword: str = input.keyword().lower().strip()
             if keyword:
@@ -212,7 +247,17 @@ def server(input, output, session):
         # Rearrange and format data
         data: pl.DataFrame = (
             filtered()
-            .select(([i18n("经济体"), i18n("政策动态"), i18n("政策类型"), i18n("发布主体"), i18n("时间")]))
+            .select(
+                (
+                    [
+                        i18n("经济体"),
+                        i18n("政策动态"),
+                        i18n("政策类型"),
+                        i18n("发布主体"),
+                        i18n("时间"),
+                    ]
+                )
+            )
             .with_columns(
                 pl.col(i18n("时间"))
                 .str.strptime(pl.Date, "%m/%Y", strict=False)
@@ -286,5 +331,6 @@ def server(input, output, session):
     @reactive.event(input.back1)
     async def _():
         ui.update_navs("table_download", selected="table_panel")
+
 
 app = App(app_ui, server, debug=False)
