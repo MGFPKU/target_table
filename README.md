@@ -4,7 +4,7 @@ An interactive **Shiny for Python** web app for browsing and analyzing climate-r
 
 This tool is designed as a **template** for research, presentation, and educational purposes. It is not intended for local hosting by the general public — instead, it showcases how one might integrate real-time GitHub-hosted datasets into a Shiny app.
 
-<img src="https://github.com/user-attachments/assets/4d1eb867-3455-497f-8f63-93e40c1c4d08" width="800"/>
+<img width="1158" height="806" alt="image" src="https://github.com/user-attachments/assets/f50a9002-50ce-4c8b-87fb-e10da2faca53" />
 
 ---
 
