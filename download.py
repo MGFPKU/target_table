@@ -73,6 +73,13 @@ async def send_to_email(input, session, fmt: str, data: bytes | str):
         "email": email,
         "inst": inst
     })
+
+    if LANG == "EN":
+        subject = "MGF — Chinese National Climate Targets Data Download"
+        base_name = "CHINA'S NATIONAL CLIMATE TARGETS DATABASE"
+    else:
+        subject = "来自MGF的中国国家气候目标数据下载"
+        base_name = "中国国家气候目标数据库"
     
     if fmt == "xlsx":
         if not isinstance(data, bytes):
@@ -89,6 +96,8 @@ async def send_to_email(input, session, fmt: str, data: bytes | str):
         "format": fmt,
         "lang": LANG,
         "content": content_b64,
+        "baseName": base_name,
+        "subject": subject
     }
     async with httpx.AsyncClient() as client:
         if not GOOGLE_SCRIPT_URL:
