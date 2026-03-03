@@ -3,6 +3,7 @@ import polars as pl
 import math
 from i18n import i18n, LANG
 
+
 def render_pagination(id: str, current: int, total: int) -> Tag:
     def page_btn(label, page, active=False):
         return tags.button(
@@ -64,25 +65,28 @@ def render_pagination(id: str, current: int, total: int) -> Tag:
         ),
     )
 
+
 def render_dropdown(current: int, total: int):
     dropdown = tags.select(
         *[tags.option(str(i), selected=(i == current)) for i in range(1, total + 1)],
         onchange=f'Shiny.setInputValue("{id}_page", parseInt(this.value), {{priority: "event"}})',
         # style="margin-left: 1em;",
     )
-    if LANG == 'CN':
-        text1 = tags.span(i18n("第"), style="margin-left: 4px;"),
-        text2 = tags.span(i18n("页")),
+    if LANG == "CN":
+        text1 = (tags.span(i18n("第"), style="margin-left: 4px;"),)
+        text2 = (tags.span(i18n("页")),)
         return (text1, dropdown, text2)
-    elif LANG == 'EN':
-        text = tags.span(i18n("页"), style="margin-left: 4px;"),
+    elif LANG == "EN":
+        text = (tags.span(i18n("页"), style="margin-left: 4px;"),)
         return (text, dropdown)
     else:
         raise ValueError(f"Unsupported language: {LANG}")
 
+
 def _col_class(col_name: str) -> str:
     """Convert column name to a valid CSS class name by replacing spaces with hyphens."""
     return f"col-{col_name.replace(' ', '-')}"
+
 
 def output_paginated_table(
     id: str, df: pl.DataFrame, page: int = 1, per_page: int = 10
@@ -96,7 +100,12 @@ def output_paginated_table(
 
     # Header (display underscores as spaces)
     thead = tags.thead(
-        tags.tr(*(tags.th(col.replace("_", " "), class_=_col_class(col)) for col in slice_df.columns))
+        tags.tr(
+            *(
+                tags.th(col.replace("_", " "), class_=_col_class(col))
+                for col in slice_df.columns
+            )
+        )
     )
 
     # Rows
@@ -106,10 +115,7 @@ def output_paginated_table(
 
         # Build each cell with a column-specific class
         row_cells = [
-            tags.td(
-                str(cell),
-                class_=_col_class(col_name)
-            )
+            tags.td(str(cell), class_=_col_class(col_name))
             for col_name, cell in zip(slice_df.columns, row)
         ]
 
@@ -117,7 +123,7 @@ def output_paginated_table(
         row_tag = tags.tr(
             *row_cells,
             onclick=f'Shiny.setInputValue("{id}", "{policy_id}", {{priority: "event"}});',
-            class_="clickable-row"
+            class_="clickable-row",
         )
         tbody.append(row_tag)
 
@@ -158,8 +164,16 @@ def output_paginated_table(
                 border-right: none;
             }
 
-            /* Column widths: Direction, Target Year and Baseline Year narrower, Category wider */
-            .custom-table .col-Direction,
+            /* Column widths: Direction, Target Year and Baseline Year narrower, Metric wider */
+            .custom-table .col-Metric{
+                width: 50%;
+                min-width: 120px;
+            }
+            .custom-table .col-Direction{
+                width: 150px;
+                min-width: 90px;
+            }
+
             .custom-table .col-Target_Year_or_Period {
                 width: 90px;
                 min-width: 90px;
