@@ -97,7 +97,8 @@ async def send_to_email(input, session, fmt: str, data: bytes | str):
         "lang": LANG,
         "content": content_b64,
         "baseName": base_name,
-        "subject": subject
+        "subject": subject,
+        "dataset": "target"
     }
     async with httpx.AsyncClient() as client:
         if not GOOGLE_SCRIPT_URL:
