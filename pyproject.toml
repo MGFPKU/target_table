@@ -1,6 +1,6 @@
 [project]
 name = "target-table"
-version = "0.2.0"
+version = "0.1.0"
 description = "Policy Target Dataset Explorer — Shiny for Python web app to browse Chinese climate policy target data."
 readme = "README.md"
 requires-python = ">=3.12"
