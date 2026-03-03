@@ -140,7 +140,7 @@ def output_paginated_table(
             .custom-table {
                 border-collapse: collapse;
                 width: 100%;
-                table-layout: fixed;
+                table-layout: auto;
             }
             .custom-table th {
                 text-align: left;
