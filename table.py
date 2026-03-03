@@ -184,6 +184,11 @@ def output_paginated_table(
                 min-width: 80px;
             }
 
+            .custom-table .col-Target_Category {
+                width: 170px;
+                min-width: 130px;
+            }
+
             .clickable-row {
                 cursor: pointer;
                 transition: background-color 0.2s;
