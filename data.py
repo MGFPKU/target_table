@@ -5,7 +5,7 @@ import json
 
 # Dataset info ----
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO = "MGFPKU/target_table"
+REPO = "MGFPKU/target_dataset"
 ASSET_NAME = "dataset.xlsx"
 
 WANTED_COLS = [
