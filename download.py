@@ -19,8 +19,8 @@ download_tab = ui.nav_panel(
                     ui.output_text(id="nrow"),
                     ui.div(
                         ui.layout_columns(
-                            ui.input_action_button(id="send_csv", label=i18n("发送结果")),
-                            ui.input_action_button(id="send_excel", label=i18n("发送完整数据")),
+                            ui.input_action_button(id="send_selected", label=i18n("发送结果")),
+                            ui.input_action_button(id="send_all", label=i18n("发送完整数据")),
                             ui.input_action_button("back1", i18n("返回列表"))
                         ),
                         class_="detail-buttons",

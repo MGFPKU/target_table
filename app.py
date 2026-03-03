@@ -6,7 +6,7 @@ import io
 
 from table import output_paginated_table
 from download import download_tab, send_to_email
-from data import get_data
+from data import get_data, fetch_raw_data
 from i18n import i18n
 
 df = get_data()
@@ -201,19 +201,13 @@ def server(input, output, session):
         return i18n("将通过邮件当前筛选结果，共 {} 条记录", filtered().shape[0])
 
     @reactive.effect
-    @reactive.event(input.send_csv)
+    @reactive.event(input.send_all)
     async def _():
-        data_csv: str = filtered().write_csv(
-            include_bom=True,
-            separator=",",
-            quote_char='"',
-            quote_style="non_numeric",
-            null_value="",
-        )  # Returns as string
-        await send_to_email(input, session, "csv", data_csv)
+        raw_data = fetch_raw_data()
+        await send_to_email(input, session, "xlsx", raw_data.getvalue())
 
     @reactive.effect
-    @reactive.event(input.send_excel)
+    @reactive.event(input.send_selected)
     async def _():
         # Step 1: Write Excel to in-memory buffer
         buffer = io.BytesIO()
