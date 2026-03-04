@@ -106,7 +106,7 @@ def get_data() -> pl.DataFrame:
         sheet = sheet.with_columns(
             pl.col("Document").str.replace(r"\.[^.]+$", "").alias("Document")
         ).with_columns(
-            pl.col("Target_Category").str.strip_chars_end(" target")
+            pl.col("Target_Category").str.replace(r"\s*target$", "", literal=False)# .alias("Target_Category")
         )
         sheet = sheet.select(WANTED_COLS)
         sheet = sheet.join(
