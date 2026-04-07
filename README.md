@@ -1,4 +1,4 @@
-# 📊 Chinese National Climate Targets Explorer (Shiny App)
+# 📊 China Climate Target Tracker (Shiny App)
 
 An interactive **Shiny for Python** web app for browsing and analyzing China's national climate policy targets — developed by the **Macro and Green Finance Lab at Peking University (MGF@PKU)**.
 
@@ -123,7 +123,7 @@ Notes:
 If you use the MGF dataset in your research or writing, please cite us as follows:
 
 **Macro and Green Finance Lab, Peking University (MGF@PKU)**  
-"China's National Climate Targets Database"  
+"China Climate Target Tracker"  
 [https://mgflab.nsd.pku.edu.cn/MGFsjk/zczz/index.htm](https://mgflab.nsd.pku.edu.cn/MGFsjk/zczz/index.htm), 2025.
 
 <!-- > For formal citation formats (APA, BibTeX, etc.), see the linked page above. -->
