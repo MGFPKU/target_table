@@ -135,26 +135,30 @@ def output_paginated_table(
         tags.style("""
             .custom-table-container {
                 width: 100%;
+                max-width: 100%;
                 overflow-x: auto;
             }
             .custom-table {
                 border-collapse: collapse;
                 width: 100%;
-                table-layout: auto;
+                max-width: 100%;
+                table-layout: fixed;
             }
             .custom-table th {
                 text-align: left;
                 font-weight: bold;
                 padding: 16px 8px;
                 border-bottom: 2px solid #ddd; /* Thick bottom border for header */
-                // white-space: nowrap; // Allow header to wrap if needed
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
             .custom-table td {
                 border: 1px solid #eee;
                 padding: 14px 8px;
-                white-space: nowrap;
+                white-space: normal;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                overflow-wrap: anywhere;
             }
 
             /* Remove vertical borders */
@@ -166,27 +170,23 @@ def output_paginated_table(
 
             /* Column widths: Direction, Target Year and Baseline Year narrower, Metric wider */
             .custom-table .col-Metric{
-                width: 50%;
-                min-width: 120px;
+                width: auto;
+                word-break: break-word;
             }
             .custom-table .col-Direction{
-                width: 150px;
-                min-width: 90px;
+                width: 12%;
             }
 
             .custom-table .col-Target_Year_or_Period {
-                width: 90px;
-                min-width: 90px;
+                width: 12%;
             }
 
             .custom-table .col-Baseline_Year {
-                width: 80px;
-                min-width: 80px;
+                width: 10%;
             }
 
             .custom-table .col-Target_Category {
-                width: 170px;
-                min-width: 130px;
+                width: 18%;
             }
 
             .clickable-row {
