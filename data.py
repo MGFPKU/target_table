@@ -141,8 +141,9 @@ def get_data() -> pl.DataFrame:
                 "Metric",
                 "_sort_target_year",
                 "Target_Year_or_Period",
+                "Baseline",
             ],
-            descending=[False, False, False, False],
+            descending=[False, False, False, False, False],
             nulls_last=True,
         )
         .drop("_sort_target_year")
