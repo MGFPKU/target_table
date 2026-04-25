@@ -181,7 +181,7 @@ def output_paginated_table(
                 width: 12%;
             }
 
-            .custom-table .col-Baseline_Year {
+            .custom-table .col-Baseline {
                 width: 10%;
             }
 
@@ -212,7 +212,7 @@ if __name__ == "__main__":
             "Metric": ["A", "B", "C"] * 5,
             "Direction": ["Up", "Down", "Neutral"] * 5,
             "Target_Magnitude": [10, 20, 30] * 5,
-            "Baseline_Year": [2000, 2005, 2010] * 5,
+            "Baseline": [2000, 2005, 2010] * 5,
             "Target_Year_or_Period": ["2025", "2030", "2025-2030"] * 5,
             "Target_Category": ["Energy", "Transport", "Industry"] * 5,
         }
