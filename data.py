@@ -14,7 +14,7 @@ WANTED_COLS = [
     "Metric",
     "Direction",
     "Target_Magnitude",
-    "Baseline_Year",
+    "Baseline",
     "Target_Year_or_Period",
     "Target_Category",
     "Document",
