@@ -127,4 +127,23 @@ def get_data() -> pl.DataFrame:
             "No sheets were processed. Check sheets.json and dataset.xlsx"
         )
 
-    return combined_sheet.fill_null("N/A")
+    return (
+        combined_sheet.fill_null("N/A")
+        .with_columns(
+            pl.col("Target_Year_or_Period")
+            .str.extract(r"(\d{4})")
+            .cast(pl.Int32, strict=False)
+            .alias("_sort_target_year")
+        )
+        .sort(
+            by=[
+                "Target_Category",
+                "Metric",
+                "_sort_target_year",
+                "Target_Year_or_Period",
+            ],
+            descending=[False, False, False, False],
+            nulls_last=True,
+        )
+        .drop("_sort_target_year")
+    )
