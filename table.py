@@ -53,7 +53,7 @@ def render_pagination(id: str, current: int, total: int) -> Tag:
         """),
         tags.div(
             *buttons,
-            *render_dropdown(current, total),
+            *render_dropdown(id, current, total),
             style=(
                 "display: flex; "
                 "align-items: center; "
@@ -66,7 +66,7 @@ def render_pagination(id: str, current: int, total: int) -> Tag:
     )
 
 
-def render_dropdown(current: int, total: int):
+def render_dropdown(id: str, current: int, total: int):
     dropdown = tags.select(
         *[tags.option(str(i), selected=(i == current)) for i in range(1, total + 1)],
         onchange=f'Shiny.setInputValue("{id}_page", parseInt(this.value), {{priority: "event"}})',
