@@ -32,14 +32,17 @@ WANTED_COLS = [
     "Topic_Label",
 ]
 
-FYP_YEAR_RANGES = {
-    "10th": "2001-2005",
-    "11th": "2006-2010",
-    "12th": "2011-2015",
-    "13th": "2016-2020",
-    "14th": "2021-2025",
-    "15th": "2026-2030",
-}
+def get_fyp_year_range(ordinal_str: str) -> str | None:
+    """Compute the year range for a given FYP ordinal (e.g., "10th" → "2001-2005").
+
+    The 10th FYP spans 2001–2005; each subsequent plan shifts forward by 5 years.
+    """
+    match = re.fullmatch(r"(\d+)(?:st|nd|rd|th)", ordinal_str)
+    if not match:
+        return None
+    n = int(match.group(1))
+    start_year = 2001 + (n - 10) * 5
+    return f"{start_year}-{start_year + 4}"
 
 
 def clean_text(value: object) -> str:
@@ -66,7 +69,7 @@ def format_target(parts: dict[str, object]) -> str:
         fyp_match = re.fullmatch(r"(the\s+)?(?P<ordinal>\d+(?:st|nd|rd|th))\s+FYP", horizon, flags=re.IGNORECASE)
         if fyp_match:
             ordinal = fyp_match.group("ordinal")
-            year_range = FYP_YEAR_RANGES.get(ordinal.lower())
+            year_range = get_fyp_year_range(ordinal.lower())
             period = f"the {ordinal} FYP"
             if year_range:
                 period = f"{period} ({year_range})"
