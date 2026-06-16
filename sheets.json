@@ -3,6 +3,7 @@
         [
             "GHG Emissions",
             "Energy|Power",
+            "Industry",
             "Buildings",
             "Transport",
             "LULUCF",
@@ -10,6 +11,5 @@
             "Pollution",
             "Finance"
         ]
-    ],
-    "source": "Source documents"
+    ]
 }
