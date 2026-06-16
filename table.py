@@ -6,7 +6,7 @@ import re
 from collections.abc import Sequence
 from i18n import i18n, LANG
 
-DEFAULT_DISPLAY_COLUMNS = ("Metric", "Target", "Target_Category", "Document")
+DEFAULT_DISPLAY_COLUMNS = ("Metric", "Announced", "Target", "Target_Category")
 
 
 def render_pagination(id: str, current: int, total: int) -> Tag:
@@ -227,14 +227,14 @@ def output_paginated_table(
                 word-break: break-word;
                 vertical-align: top;
             }
+            .custom-table .col-Announced {
+                width: 12%;
+            }
             .custom-table .col-Target {
                 width: 42%;
             }
             .custom-table .col-Target_Category {
                 width: 16%;
-            }
-            .custom-table .col-Document {
-                width: 12%;
             }
 
             .clickable-row {
@@ -258,9 +258,9 @@ if __name__ == "__main__":
     df = pl.DataFrame(
         {
             "Metric": ["A", "A", "B"] * 5,
+            "Announced": ["2020", "2021", "2022"] * 5,
             "Target": ["by 2020, reach 10 percent", "by 2030, reach 20 percent", "during the 12th FYP (2011-2015), reduce by 15 percent"] * 5,
             "Target_Category": ["Energy", "Energy", "Industry"] * 5,
-            "Document": ["A.pdf", "B.pdf", "C.pdf"] * 5,
         }
     )
 
