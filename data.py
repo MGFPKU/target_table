@@ -2,6 +2,7 @@ import os, io
 import requests
 import polars as pl
 import json
+import re
 
 # Dataset info ----
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -10,30 +11,76 @@ ASSET_NAME = "dataset.xlsx"
 LOCAL_DATA: bool = os.getenv("LOCAL_DATA", "FALSE").upper() == "TRUE"
 LANGUAGE: str = os.getenv("LANGUAGE", "CN").upper()
 
+DISPLAY_COLS = [
+    "Metric",
+    "Announced",
+    "Target",
+    "Target_Category",
+]
+
 WANTED_COLS = [
+    "Announcement_Year",
     "Metric",
     "Direction",
     "Target_Magnitude",
     "Baseline",
     "Target_Year_or_Period",
     "Target_Category",
+    "Accountability",
+    "Sentence",
     "Document",
+    "Topic_Label",
 ]
 
+def get_fyp_year_range(ordinal_str: str) -> str | None:
+    """Compute the year range for a given FYP ordinal (e.g., "10th" → "2001-2005").
 
-def promote_second_row_to_header(df: pl.DataFrame) -> pl.DataFrame:
-    """Use the first row of `df` as column names and drop that row.
-
-    Polars by default uses the first Excel row as column names. If the actual
-    headers live in the second Excel row (which becomes the first row of the
-    DataFrame), promote that row to be the DataFrame columns and remove it.
+    The 10th FYP spans 2001–2005; each subsequent plan shifts forward by 5 years.
     """
-    if df.height == 0:
-        return df
-    header_vals = [str(v) if v is not None else "" for v in df.row(0)]
-    df = df.slice(1)
-    df.columns = header_vals
-    return df
+    match = re.fullmatch(r"(\d+)(?:st|nd|rd|th)", ordinal_str)
+    if not match:
+        return None
+    n = int(match.group(1))
+    start_year = 2001 + (n - 10) * 5
+    return f"{start_year}-{start_year + 4}"
+
+
+def clean_text(value: object) -> str:
+    if value is None:
+        return ""
+    text = str(value)
+    if text.strip().upper() in {"", "N/A", "NA", "NONE", "NULL"}:
+        return ""
+    text = re.sub(r"[\u200b\u200c\u200d\ufeff]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def format_target(parts: dict[str, object]) -> str:
+    direction = clean_text(parts.get("Direction"))
+    magnitude = clean_text(parts.get("Target_Magnitude"))
+    baseline = clean_text(parts.get("Baseline"))
+    horizon = clean_text(parts.get("Target_Year_or_Period"))
+
+    target_phrase = " ".join(part for part in [direction, magnitude] if part)
+    if baseline:
+        target_phrase = f"{target_phrase} from {baseline} levels" if target_phrase else f"from {baseline} levels"
+
+    if horizon:
+        fyp_match = re.fullmatch(r"(the\s+)?(?P<ordinal>\d+(?:st|nd|rd|th))\s+FYP", horizon, flags=re.IGNORECASE)
+        if fyp_match:
+            ordinal = fyp_match.group("ordinal")
+            year_range = get_fyp_year_range(ordinal.lower())
+            period = f"the {ordinal} FYP"
+            if year_range:
+                period = f"{period} ({year_range})"
+            prefix = f"during {period}"
+        elif re.fullmatch(r"\d{4}", horizon):
+            prefix = f"by {horizon}"
+        else:
+            prefix = f"during {horizon}"
+        return f"{prefix}, {target_phrase}" if target_phrase else prefix
+
+    return target_phrase or "N/A"
 
 
 def fetch_raw_data() -> io.BytesIO:
@@ -79,44 +126,49 @@ def fetch_raw_data() -> io.BytesIO:
     return io.BytesIO(file_res.content)
 
 
-def get_sheet_names() -> tuple[list[str], str]:
+def get_sheet_names() -> list[str]:
     with open("sheets.json", "r", encoding="utf-8") as f:
         dicts: dict = json.load(f)
     sheet_names: list[str] = dicts.get("sheets", [])[0]
     if not sheet_names:
         raise RuntimeError("No sheet names found in sheets.json")
-    source_sheet: str = dicts.get("source", "")
-    if source_sheet == "":
-        raise RuntimeError("No source sheet specified in sheets.json")
-    return sheet_names, source_sheet
+    return sheet_names
 
 
 def get_data() -> pl.DataFrame:
 
     raw_xlsx = fetch_raw_data()
 
-    sheet_names, source_sheet = get_sheet_names()
-    source_sheet = pl.read_excel(raw_xlsx, sheet_name=source_sheet)
-    source_sheet = promote_second_row_to_header(source_sheet).select(
-        ["code", "doc_name_en", "doc_name_zh"]
-    )
-
+    sheet_names = get_sheet_names()
     combined_sheet: pl.DataFrame | None = None
 
     for sheet_name in sheet_names:
+        raw_xlsx.seek(0)
         sheet = (
             pl.read_excel(raw_xlsx, sheet_name=sheet_name)
             .with_columns(pl.all().cast(pl.Utf8))
             .filter(pl.col("Count") != "r")
         )
-        sheet = sheet.with_columns(
-            pl.col("Document").str.replace(r"\.[^.]+$", "").alias("Document")
-        ).with_columns(
-            pl.col("Target_Category").str.replace(r"\s*target$", "", literal=False)# .alias("Target_Category")
-        )
-        sheet = sheet.select(WANTED_COLS)
-        sheet = sheet.join(
-            source_sheet, left_on="Document", right_on="code", how="left"
+        available_cols = [col for col in WANTED_COLS if col in sheet.columns]
+        missing_cols = [col for col in WANTED_COLS if col not in sheet.columns]
+        if missing_cols:
+            raise RuntimeError(
+                f"Sheet '{sheet_name}' is missing required columns: {', '.join(missing_cols)}"
+            )
+
+        sheet = sheet.select(available_cols).with_columns(
+            pl.col("Announcement_Year").alias("Announced"),
+            pl.col("Metric")
+            .map_elements(clean_text, return_dtype=pl.Utf8)
+            .alias("Metric"),
+            pl.struct(
+                "Direction",
+                "Target_Magnitude",
+                "Baseline",
+                "Target_Year_or_Period",
+            )
+            .map_elements(format_target, return_dtype=pl.Utf8)
+            .alias("Target"),
         )
         combined_sheet = (
             sheet if combined_sheet is None else pl.concat([combined_sheet, sheet])
@@ -133,18 +185,19 @@ def get_data() -> pl.DataFrame:
             pl.col("Target_Year_or_Period")
             .str.extract(r"(\d{4})")
             .cast(pl.Int32, strict=False)
-            .alias("_sort_target_year")
+            .alias("_sort_target_year"),
+            pl.col("Metric").alias("_sort_metric"),
         )
         .sort(
             by=[
+                "_sort_metric",
                 "Target_Category",
-                "Metric",
                 "_sort_target_year",
                 "Target_Year_or_Period",
-                "Baseline",
+                "Target",
             ],
             descending=[False, False, False, False, False],
             nulls_last=True,
         )
-        .drop("_sort_target_year")
+        .drop(["_sort_target_year", "_sort_metric"])
     )

@@ -6,10 +6,14 @@ import io
 
 from table import output_paginated_table
 from download import download_tab, send_to_email
-from data import get_data, fetch_raw_data
+from data import DISPLAY_COLS, get_data, fetch_raw_data
 from i18n import i18n
 
 df = get_data()
+
+
+def display_data(data: pl.DataFrame) -> pl.DataFrame:
+    return data.select(DISPLAY_COLS)
 
 # compile ui
 app_ui = ui.page_fluid(
@@ -185,7 +189,9 @@ def server(input, output, session):
             # )
         )
         try:
-            table: Tag = output_paginated_table("mytable", data, page=current_page())
+            table: Tag = output_paginated_table(
+                "mytable", data, page=current_page(), display_columns=DISPLAY_COLS
+            )
             return table
         except Exception as e:
             print("⚠️ Error rendering table:", e)
@@ -211,7 +217,7 @@ def server(input, output, session):
     async def _():
         # Step 1: Write Excel to in-memory buffer
         buffer = io.BytesIO()
-        filtered().write_excel(buffer)
+        display_data(filtered()).write_excel(buffer)
         buffer.seek(0)
 
         # Step 2: Send Excel to email
