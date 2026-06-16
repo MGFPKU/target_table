@@ -1,7 +1,12 @@
 from htmltools import tags, Tag
 import polars as pl
 import math
+import json
+import re
+from collections.abc import Sequence
 from i18n import i18n, LANG
+
+DEFAULT_DISPLAY_COLUMNS = ("Metric", "Target", "Target_Category", "Document")
 
 
 def render_pagination(id: str, current: int, total: int) -> Tag:
@@ -84,19 +89,58 @@ def render_dropdown(id: str, current: int, total: int):
 
 
 def _col_class(col_name: str) -> str:
-    """Convert column name to a valid CSS class name by replacing spaces with hyphens."""
-    return f"col-{col_name.replace(' ', '-')}"
+    """Convert column name to a valid CSS class name."""
+    return f"col-{re.sub(r'[^A-Za-z0-9_-]+', '-', col_name).strip('-')}"
+
+
+def _normalize_metric(value: object) -> str:
+    if value is None:
+        return ""
+    text = re.sub(r"[\u200b\u200c\u200d\ufeff]", "", str(value))
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _display_value(value: object) -> str:
+    if value is None:
+        return "N/A"
+    return str(value)
+
+
+def _metric_rowspans(rows: list[dict[str, object]]) -> dict[int, int]:
+    spans: dict[int, int] = {}
+    index = 0
+    while index < len(rows):
+        metric = _normalize_metric(rows[index].get("Metric"))
+        next_index = index + 1
+        while (
+            next_index < len(rows)
+            and _normalize_metric(rows[next_index].get("Metric")) == metric
+        ):
+            next_index += 1
+        spans[index] = next_index - index
+        index = next_index
+    return spans
 
 
 def output_paginated_table(
-    id: str, df: pl.DataFrame, page: int = 1, per_page: int = 10
+    id: str,
+    df: pl.DataFrame,
+    page: int = 1,
+    per_page: int = 10,
+    display_columns: Sequence[str] = DEFAULT_DISPLAY_COLUMNS,
 ) -> Tag:
     # Extract page slice
+    missing_cols = [col for col in display_columns if col not in df.columns]
+    if missing_cols:
+        raise ValueError(f"Missing display columns: {', '.join(missing_cols)}")
+
     total_rows = df.shape[0]
     total_pages = max(math.ceil(total_rows / per_page), 1)
     start = (page - 1) * per_page
     end = start + per_page
-    slice_df = df[start:end, :6]  # first 6 columns only
+    slice_df = df.select(list(display_columns)).slice(start, per_page)
+    rows = slice_df.to_dicts()
+    metric_spans = _metric_rowspans(rows)
 
     # Header (display underscores as spaces)
     thead = tags.thead(
@@ -110,19 +154,29 @@ def output_paginated_table(
 
     # Rows
     tbody = tags.tbody()
-    for row in slice_df.iter_rows():
-        policy_id = str(row[1])  # Assume column index 1 is “政策动态”
+    for row_index, row in enumerate(rows):
+        policy_id = _display_value(row.get("Document", row.get("Target", "")))
 
         # Build each cell with a column-specific class
-        row_cells = [
-            tags.td(str(cell), class_=_col_class(col_name))
-            for col_name, cell in zip(slice_df.columns, row)
-        ]
+        row_cells = []
+        for col_name in slice_df.columns:
+            if col_name == "Metric":
+                rowspan = metric_spans.get(row_index)
+                if rowspan is None:
+                    continue
+                cell_attrs = {"class_": _col_class(col_name)}
+                if rowspan > 1:
+                    cell_attrs["rowspan"] = str(rowspan)
+                row_cells.append(tags.td(_display_value(row[col_name]), **cell_attrs))
+            else:
+                row_cells.append(
+                    tags.td(_display_value(row[col_name]), class_=_col_class(col_name))
+                )
 
         # Wrap the row with onclick handler
         row_tag = tags.tr(
             *row_cells,
-            onclick=f'Shiny.setInputValue("{id}", "{policy_id}", {{priority: "event"}});',
+            onclick=f'Shiny.setInputValue("{id}", {json.dumps(policy_id)}, {{priority: "event"}});',
             class_="clickable-row",
         )
         tbody.append(row_tag)
@@ -168,25 +222,19 @@ def output_paginated_table(
                 border-right: none;
             }
 
-            /* Column widths: Direction, Target Year and Baseline Year narrower, Metric wider */
-            .custom-table .col-Metric{
-                width: auto;
+            .custom-table .col-Metric {
+                width: 30%;
                 word-break: break-word;
+                vertical-align: top;
             }
-            .custom-table .col-Direction{
-                width: 12%;
+            .custom-table .col-Target {
+                width: 42%;
             }
-
-            .custom-table .col-Target_Year_or_Period {
-                width: 12%;
-            }
-
-            .custom-table .col-Baseline {
-                width: 10%;
-            }
-
             .custom-table .col-Target_Category {
-                width: 18%;
+                width: 16%;
+            }
+            .custom-table .col-Document {
+                width: 12%;
             }
 
             .clickable-row {
@@ -209,12 +257,10 @@ if __name__ == "__main__":
     # Example usage
     df = pl.DataFrame(
         {
-            "Metric": ["A", "B", "C"] * 5,
-            "Direction": ["Up", "Down", "Neutral"] * 5,
-            "Target_Magnitude": [10, 20, 30] * 5,
-            "Baseline": [2000, 2005, 2010] * 5,
-            "Target_Year_or_Period": ["2025", "2030", "2025-2030"] * 5,
-            "Target_Category": ["Energy", "Transport", "Industry"] * 5,
+            "Metric": ["A", "A", "B"] * 5,
+            "Target": ["by 2020, reach 10 percent", "by 2030, reach 20 percent", "during the 12th FYP (2011-2015), reduce by 15 percent"] * 5,
+            "Target_Category": ["Energy", "Energy", "Industry"] * 5,
+            "Document": ["A.pdf", "B.pdf", "C.pdf"] * 5,
         }
     )
 
