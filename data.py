@@ -55,6 +55,13 @@ def clean_text(value: object) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _starts_with_letter(text: str) -> bool:
+    """Return True if *text* starts with a letter — we assume it already
+    contains a preposition and doesn't need \"during\" prepended."""
+    stripped = text.strip()
+    return bool(stripped) and stripped[0].isalpha()
+
+
 def format_target(parts: dict[str, object]) -> str:
     direction = clean_text(parts.get("Direction"))
     magnitude = clean_text(parts.get("Target_Magnitude"))
@@ -63,10 +70,18 @@ def format_target(parts: dict[str, object]) -> str:
 
     target_phrase = " ".join(part for part in [direction, magnitude] if part)
     if baseline:
-        target_phrase = f"{target_phrase} from {baseline} levels" if target_phrase else f"from {baseline} levels"
+        target_phrase = (
+            f"{target_phrase} from {baseline} levels"
+            if target_phrase
+            else f"from {baseline} levels"
+        )
 
     if horizon:
-        fyp_match = re.fullmatch(r"(the\s+)?(?P<ordinal>\d+(?:st|nd|rd|th))\s+FYP", horizon, flags=re.IGNORECASE)
+        fyp_match = re.fullmatch(
+            r"(the\s+)?(?P<ordinal>\d+(?:st|nd|rd|th))\s+FYP",
+            horizon,
+            flags=re.IGNORECASE,
+        )
         if fyp_match:
             ordinal = fyp_match.group("ordinal")
             year_range = get_fyp_year_range(ordinal.lower())
@@ -76,6 +91,8 @@ def format_target(parts: dict[str, object]) -> str:
             prefix = f"during {period}"
         elif re.fullmatch(r"\d{4}", horizon):
             prefix = f"by {horizon}"
+        elif _starts_with_letter(horizon):
+            prefix = horizon
         else:
             prefix = f"during {horizon}"
 
