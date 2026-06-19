@@ -78,7 +78,17 @@ def format_target(parts: dict[str, object]) -> str:
             prefix = f"by {horizon}"
         else:
             prefix = f"during {horizon}"
-        return f"{prefix}, {target_phrase}" if target_phrase else prefix
+
+        if target_phrase:
+            # When there is no magnitude (just a bare direction word like "Achieve"),
+            # place it before the horizon: "Achieve before 2060".
+            # When there is a substantive target, keep the original order:
+            # "by 2025, achieve 130 million tons".
+            if not magnitude:
+                return f"{target_phrase} {prefix}"
+            else:
+                return f"{prefix}, {target_phrase}"
+        return prefix
 
     return target_phrase or "N/A"
 
