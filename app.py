@@ -159,9 +159,7 @@ def server(input, output, session):
         if input.keyword():
             keyword: str = input.keyword().lower().strip()
             if keyword:
-                string_cols = [
-                    col for col, dtype in data.schema.items() if dtype == pl.String
-                ]
+                string_cols = ["Metric", "Target"]
 
                 if string_cols:
                     filter_expr = pl.fold(
