@@ -191,12 +191,13 @@ def get_data() -> pl.DataFrame:
         .sort(
             by=[
                 "_sort_metric",
+                "Announced",
                 "Target_Category",
                 "_sort_target_year",
                 "Target_Year_or_Period",
                 "Target",
             ],
-            descending=[False, False, False, False, False],
+            descending=[False, False, False, False, False, False],
             nulls_last=True,
         )
         .drop(["_sort_target_year", "_sort_metric"])
