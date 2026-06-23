@@ -42,7 +42,7 @@ app_ui = ui.page_fluid(
                     ui.div(
                         "下载",
                         class_="form-label",
-                        style="visibility: hidden; height: 1em;",
+                        style="visibility: hidden;",
                     ),
                     ui.input_action_button(
                         "download",
@@ -63,7 +63,7 @@ app_ui = ui.page_fluid(
                         ),
                     ),
                     class_="col-sm-2",  # mimic layout_columns spacing
-                    style="display: flex; flex-direction: column; align-items: start; justify-content: end; padding-top: 0.6em;",
+                    style="display: flex; flex-direction: column; align-items: start; justify-content: end;",
                 ),
             ),
             ui.tags.style(f"""
