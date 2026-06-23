@@ -238,7 +238,6 @@ def output_paginated_table(
             }
 
             .clickable-row {
-                cursor: pointer;
                 transition: background-color 0.2s;
             }
 
