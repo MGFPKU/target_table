@@ -3,7 +3,7 @@ import requests
 import polars as pl
 import json
 
-from target_format import clean_text, format_target
+from target_format import clean_text, format_target, format_target_cn
 
 # Dataset info ----
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -33,11 +33,46 @@ WANTED_COLS = [
     "Topic_Label",
 ]
 
+# Chinese local file support ------------------------------------------------
+CN_LOCAL_FILE = "../中国国家气候目标数据库.xlsx"
+
+# Chinese source column name → internal English name
+CN_COLUMN_MAP: dict[str, str] = {
+    "公布年份": "Announcement_Year",
+    "指标": "Metric",
+    "方向": "Direction",
+    "目标值": "Target_Magnitude",
+    "基线": "Baseline",
+    "目标年份/时期": "Target_Year_or_Period",
+    "计数": "Count",
+    "目标类别": "Target_Category",
+    "责任主体": "Accountability",
+    "政策原文": "Sentence",
+    "文件": "Document",
+    "主题标签": "Topic_Label",
+}
+
+# Reverse: internal English name → Chinese source name
+_EN_TO_CN = {en: cn for cn, en in CN_COLUMN_MAP.items()}
+
+# Chinese display labels for DISPLAY_COLS.
+# Derived from _EN_TO_CN; "Announced" is aliased from Announcement_Year at
+# load time, and "Target" is a computed column with no source equivalent.
+CN_HEADER_MAP: dict[str, str] = {
+    col: "目标" if col == "Target"
+    else _EN_TO_CN.get("Announcement_Year" if col == "Announced" else col, col)
+    for col in DISPLAY_COLS
+}
+
 
 def fetch_raw_data() -> io.BytesIO:
     if LOCAL_DATA:
-        with open("../CHINA'S NATIONAL CLIMATE TARGETS DATABASE.xlsx", "rb") as f:
-            print("Using local data...")
+        if LANGUAGE == "CN":
+            file_path = CN_LOCAL_FILE
+        else:
+            file_path = "../CHINA'S NATIONAL CLIMATE TARGETS DATABASE.xlsx"
+        with open(file_path, "rb") as f:
+            print(f"Using local data ({file_path})...")
             return io.BytesIO(f.read())
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -79,16 +114,107 @@ def fetch_raw_data() -> io.BytesIO:
 
 def get_sheet_names() -> list[str]:
     with open("sheets.json", "r", encoding="utf-8") as f:
-        dicts: dict = json.load(f)
-    sheet_names: list[str] = dicts.get("sheets", [])[0]
+        data: dict = json.load(f)
+    sheets = data.get("sheets", {})
+    # Support both nested {CN: [...], EN: [...]} and legacy [[...]] formats
+    if isinstance(sheets, dict):
+        sheet_names: list[str] = sheets.get(LANGUAGE, sheets.get("EN", []))
+    else:
+        # Legacy format: sheets is a list of lists
+        sheet_names: list[str] = sheets[0] if sheets else []
     if not sheet_names:
         raise RuntimeError("No sheet names found in sheets.json")
     return sheet_names
 
 
+def _rename_cn_columns(df: pl.DataFrame) -> pl.DataFrame:
+    """Rename Chinese source column names to internal English names."""
+    rename_map = {cn: en for cn, en in CN_COLUMN_MAP.items() if cn in df.columns}
+    return df.rename(rename_map)
+
+
+def _load_cn_data(raw_xlsx: io.BytesIO) -> pl.DataFrame:
+    """Load and process data from the Chinese Excel file.
+
+    Differences from get_data():
+      - Chinese source column names are renamed to internal English names
+      - No Count != "r" filter (Chinese data has no reference rows)
+      - Uses format_target_cn() for Chinese target display
+      - Uses fill_null("无") instead of fill_null("N/A")
+    """
+    sheet_names = get_sheet_names()
+    combined_sheet: pl.DataFrame | None = None
+
+    for sheet_name in sheet_names:
+        raw_xlsx.seek(0)
+        sheet = (
+            pl.read_excel(raw_xlsx, sheet_name=sheet_name)
+            .with_columns(pl.all().cast(pl.Utf8))
+        )
+        # Rename Chinese columns → internal English names
+        sheet = _rename_cn_columns(sheet)
+
+        available_cols = [col for col in WANTED_COLS if col in sheet.columns]
+        missing_cols = [col for col in WANTED_COLS if col not in sheet.columns]
+        if missing_cols:
+            raise RuntimeError(
+                f"Sheet '{sheet_name}' is missing required columns: {', '.join(missing_cols)}"
+            )
+
+        sheet = sheet.select(available_cols).with_columns(
+            pl.col("Announcement_Year").alias("Announced"),
+            pl.col("Metric")
+            .map_elements(clean_text, return_dtype=pl.Utf8)
+            .alias("Metric"),
+            pl.struct(
+                "Direction",
+                "Target_Magnitude",
+                "Baseline",
+                "Target_Year_or_Period",
+            )
+            .map_elements(format_target_cn, return_dtype=pl.Utf8)
+            .alias("Target"),
+        )
+        combined_sheet = (
+            sheet if combined_sheet is None else pl.concat([combined_sheet, sheet])
+        )
+
+    if combined_sheet is None:
+        raise RuntimeError(
+            "No sheets were processed. Check the Chinese Excel file."
+        )
+
+    return (
+        combined_sheet.fill_null("无")
+        .with_columns(
+            pl.col("Target_Year_or_Period")
+            .str.extract(r"(\d{4})")
+            .cast(pl.Int32, strict=False)
+            .alias("_sort_target_year"),
+            pl.col("Metric").alias("_sort_metric"),
+        )
+        .sort(
+            by=[
+                "_sort_metric",
+                "Announced",
+                "Target_Category",
+                "_sort_target_year",
+                "Target_Year_or_Period",
+                "Target",
+            ],
+            descending=[False, False, False, False, False, False],
+            nulls_last=True,
+        )
+        .drop(["_sort_target_year", "_sort_metric"])
+    )
+
+
 def get_data() -> pl.DataFrame:
 
     raw_xlsx = fetch_raw_data()
+
+    if LANGUAGE == "CN" and LOCAL_DATA:
+        return _load_cn_data(raw_xlsx)
 
     sheet_names = get_sheet_names()
     combined_sheet: pl.DataFrame | None = None

@@ -6,14 +6,17 @@ import io
 
 from table import output_paginated_table
 from download import download_tab, send_to_email
-from data import DISPLAY_COLS, get_data, fetch_raw_data
-from i18n import i18n
+from data import DISPLAY_COLS, get_data, fetch_raw_data, CN_HEADER_MAP
+from i18n import i18n, LANG
 
 df = get_data()
 
 
 def display_data(data: pl.DataFrame) -> pl.DataFrame:
-    return data.select(DISPLAY_COLS)
+    df = data.select(DISPLAY_COLS)
+    if LANG == "CN":
+        df = df.rename(CN_HEADER_MAP)
+    return df
 
 # compile ui
 app_ui = ui.page_fluid(
