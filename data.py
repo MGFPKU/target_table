@@ -35,6 +35,8 @@ WANTED_COLS = [
 
 # Chinese local file support ------------------------------------------------
 CN_LOCAL_FILE = "../中国国家气候目标数据库.xlsx"
+
+# Chinese source column name → internal English name
 CN_COLUMN_MAP: dict[str, str] = {
     "公布年份": "Announcement_Year",
     "指标": "Metric",
@@ -49,12 +51,17 @@ CN_COLUMN_MAP: dict[str, str] = {
     "文件": "Document",
     "主题标签": "Topic_Label",
 }
-# Map internal English column name → Chinese display label
+
+# Reverse: internal English name → Chinese source name
+_EN_TO_CN = {en: cn for cn, en in CN_COLUMN_MAP.items()}
+
+# Chinese display labels for DISPLAY_COLS.
+# Derived from _EN_TO_CN; "Announced" is aliased from Announcement_Year at
+# load time, and "Target" is a computed column with no source equivalent.
 CN_HEADER_MAP: dict[str, str] = {
-    "Metric": "指标",
-    "Announced": "公布年份",
-    "Target": "目标",
-    "Target_Category": "目标类别",
+    col: "目标" if col == "Target"
+    else _EN_TO_CN.get("Announcement_Year" if col == "Announced" else col, col)
+    for col in DISPLAY_COLS
 }
 
 
