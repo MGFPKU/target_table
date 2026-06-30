@@ -9,7 +9,6 @@ from target_format import clean_text, format_target, format_target_cn
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO = "MGFPKU/target_dataset"
 LOCAL_DATA: bool = os.getenv("LOCAL_DATA", "FALSE").upper() == "TRUE"
-LANGUAGE: str = os.getenv("LANGUAGE", "CN").upper()
 
 # GitHub release asset name per language
 _ASSET_NAME = {"CN": "Chinese.xlsx", "EN": "English.xlsx"}
@@ -66,10 +65,24 @@ CN_HEADER_MAP: dict[str, str] = {
     for col in DISPLAY_COLS
 }
 
+# Per-language data cache — loaded once on first request per language
+_data_cache: dict[str, pl.DataFrame] = {}
 
-def fetch_raw_data() -> io.BytesIO:
+
+def _resolve_lang(lang: str | None) -> str:
+    """Normalise a language string to CN or EN, falling back to env var."""
+    if lang is None:
+        lang = os.getenv("LANGUAGE", "CN")
+    lang = lang.upper()
+    if lang not in ("CN", "EN"):
+        lang = "CN"
+    return lang
+
+
+def fetch_raw_data(lang: str | None = None) -> io.BytesIO:
+    lang = _resolve_lang(lang)
     if LOCAL_DATA:
-        if LANGUAGE == "CN":
+        if lang == "CN":
             file_path = CN_LOCAL_FILE
         else:
             file_path = "../CHINA'S NATIONAL CLIMATE TARGETS DATABASE.xlsx"
@@ -91,7 +104,7 @@ def fetch_raw_data() -> io.BytesIO:
     release = res.json()
 
     # 2️⃣ Find the language-appropriate asset
-    asset_name = _ASSET_NAME.get(LANGUAGE, _ASSET_NAME["EN"])
+    asset_name = _ASSET_NAME.get(lang, _ASSET_NAME["CN"])
     asset = next((a for a in release["assets"] if a["name"] == asset_name), None)
 
     if asset is None:
@@ -115,13 +128,14 @@ def fetch_raw_data() -> io.BytesIO:
     return io.BytesIO(file_res.content)
 
 
-def get_sheet_names() -> list[str]:
+def get_sheet_names(lang: str | None = None) -> list[str]:
+    lang = _resolve_lang(lang)
     with open("sheets.json", "r", encoding="utf-8") as f:
         data: dict = json.load(f)
     sheets = data.get("sheets", {})
     # Support both nested {CN: [...], EN: [...]} and legacy [[...]] formats
     if isinstance(sheets, dict):
-        sheet_names: list[str] = sheets.get(LANGUAGE, sheets.get("EN", []))
+        sheet_names: list[str] = sheets.get(lang, sheets.get("CN", []))
     else:
         # Legacy format: sheets is a list of lists
         sheet_names: list[str] = sheets[0] if sheets else []
@@ -136,16 +150,16 @@ def _rename_cn_columns(df: pl.DataFrame) -> pl.DataFrame:
     return df.rename(rename_map)
 
 
-def _load_cn_data(raw_xlsx: io.BytesIO) -> pl.DataFrame:
+def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
     """Load and process data from the Chinese Excel file.
 
-    Differences from get_data():
+    Differences from _load_en_data():
       - Chinese source column names are renamed to internal English names
       - No Count != "r" filter (Chinese data has no reference rows)
       - Uses format_target_cn() for Chinese target display
       - Uses fill_null("无") instead of fill_null("N/A")
     """
-    sheet_names = get_sheet_names()
+    sheet_names = get_sheet_names(lang)
     combined_sheet: pl.DataFrame | None = None
 
     for sheet_name in sheet_names:
@@ -212,14 +226,9 @@ def _load_cn_data(raw_xlsx: io.BytesIO) -> pl.DataFrame:
     )
 
 
-def get_data() -> pl.DataFrame:
-
-    raw_xlsx = fetch_raw_data()
-
-    if LANGUAGE == "CN":
-        return _load_cn_data(raw_xlsx)
-
-    sheet_names = get_sheet_names()
+def _load_en_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
+    """Load and process data from the English Excel file."""
+    sheet_names = get_sheet_names(lang)
     combined_sheet: pl.DataFrame | None = None
 
     for sheet_name in sheet_names:
@@ -282,3 +291,26 @@ def get_data() -> pl.DataFrame:
         )
         .drop(["_sort_target_year", "_sort_metric"])
     )
+
+
+def get_data(lang: str | None = None) -> pl.DataFrame:
+    """Return the full dataset for *lang*, caching it in memory.
+
+    Call this from inside a Shiny session so ``lang`` can be driven by a
+    query parameter (``?lang=cn`` / ``?lang=en``).  The first call per
+    language fetches and processes the Excel file; subsequent calls hit an
+    in-memory cache.
+    """
+    lang = _resolve_lang(lang)
+
+    if lang in _data_cache:
+        return _data_cache[lang]
+
+    raw_xlsx = fetch_raw_data(lang)
+    if lang == "CN":
+        df = _load_cn_data(raw_xlsx, lang)
+    else:
+        df = _load_en_data(raw_xlsx, lang)
+
+    _data_cache[lang] = df
+    return df

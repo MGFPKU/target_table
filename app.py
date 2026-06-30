@@ -10,8 +10,6 @@ from download import download_tab, send_to_email
 from data import DISPLAY_COLS, get_data, fetch_raw_data, CN_HEADER_MAP
 from i18n import i18n, get_lang, set_language
 
-df = get_data()
-
 
 def display_data(data: pl.DataFrame) -> pl.DataFrame:
     df = data.select(DISPLAY_COLS)
@@ -105,6 +103,11 @@ def server(input, output, session):
         # Query param takes precedence; fall back to env var; ultimate default CN
         return params.get("lang") or os.getenv("LANGUAGE", "CN")
 
+    @reactive.calc
+    def df():
+        """Load the language-appropriate dataset (cached per language)."""
+        return get_data(lang())
+
     @render.ui
     def table_download_navs():
         set_language(lang())
@@ -116,19 +119,21 @@ def server(input, output, session):
             }}
         """)
 
+        data = df()
+
         filter_bar = ui.layout_columns(
             ui.input_select(
                 "target_horizon",
                 i18n("目标时间"),
                 choices=[i18n("全部")]
-                + sorted(df["Target_Year_or_Period"].unique().to_list()),
+                + sorted(data["Target_Year_or_Period"].unique().to_list()),
             ),
             ui.input_select(
                 "target_category",
                 i18n("目标类型"),
                 choices=[i18n("全部")]
                 + sorted(
-                    df["Target_Category"].unique().to_list()
+                    data["Target_Category"].unique().to_list()
                 ),
             ),
             ui.input_text(
@@ -187,7 +192,7 @@ def server(input, output, session):
     def filtered():
         set_language(lang())
         current_page.set(1)
-        data = df
+        data = df()
         if input.target_horizon() != i18n("全部"):
             data = data.filter(pl.col("Target_Year_or_Period") == input.target_horizon())
         if input.target_category() != i18n("全部"):
@@ -239,7 +244,7 @@ def server(input, output, session):
     @reactive.effect
     @reactive.event(input.send_all)
     async def _():
-        raw_data = fetch_raw_data()
+        raw_data = fetch_raw_data(lang())
         await send_to_email(input, session, "xlsx", raw_data.getvalue())
 
     @reactive.effect
