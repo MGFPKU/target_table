@@ -8,9 +8,11 @@ from target_format import clean_text, format_target, format_target_cn
 # Dataset info ----
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO = "MGFPKU/target_dataset"
-ASSET_NAME = "dataset.xlsx"
 LOCAL_DATA: bool = os.getenv("LOCAL_DATA", "FALSE").upper() == "TRUE"
 LANGUAGE: str = os.getenv("LANGUAGE", "CN").upper()
+
+# GitHub release asset name per language
+_ASSET_NAME = {"CN": "Chinese.xlsx", "EN": "English.xlsx"}
 
 DISPLAY_COLS = [
     "Metric",
@@ -88,11 +90,12 @@ def fetch_raw_data() -> io.BytesIO:
 
     release = res.json()
 
-    # 2️⃣ Find the asset
-    asset = next((a for a in release["assets"] if a["name"] == ASSET_NAME), None)
+    # 2️⃣ Find the language-appropriate asset
+    asset_name = _ASSET_NAME.get(LANGUAGE, _ASSET_NAME["EN"])
+    asset = next((a for a in release["assets"] if a["name"] == asset_name), None)
 
     if asset is None:
-        raise RuntimeError("dataset.xlsx not found in latest release.")
+        raise RuntimeError(f"{asset_name} not found in latest release.")
 
     asset_id = asset["id"]
 
@@ -213,7 +216,7 @@ def get_data() -> pl.DataFrame:
 
     raw_xlsx = fetch_raw_data()
 
-    if LANGUAGE == "CN" and LOCAL_DATA:
+    if LANGUAGE == "CN":
         return _load_cn_data(raw_xlsx)
 
     sheet_names = get_sheet_names()
