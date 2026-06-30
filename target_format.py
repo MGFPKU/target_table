@@ -2,6 +2,12 @@
 
 import re
 
+# Chinese numeral to integer mapping for FYP year computation
+CN_NUMERALS: dict[str, int] = {
+    "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9,
+}
+
 
 def clean_text(value: object) -> str:
     if value is None:
@@ -79,3 +85,83 @@ def format_target(parts: dict[str, object]) -> str:
         return prefix
 
     return target_phrase or "N/A"
+
+
+def _get_cn_fyp_year_range(fyp_str: str) -> str | None:
+    """Compute the year range for a Chinese FYP string (e.g., '十二五' → '2011-2015').
+
+    Chinese FYP pattern: 十([一二三四五六七八九])?五
+    - 十五  = 10th FYP (2001-2005)
+    - 十一五 = 11th FYP (2006-2010)
+    - 十二五 = 12th FYP (2011-2015)
+    - 十三五 = 13th FYP (2016-2020)
+    - etc.
+    """
+    match = re.fullmatch(r"十([一二三四五六七八九])?五", fyp_str)
+    if not match:
+        return None
+    digit_char = match.group(1)
+    n = 10 + (CN_NUMERALS.get(digit_char, 0) if digit_char else 0)
+    start_year = 2001 + (n - 10) * 5
+    return f"{start_year}-{start_year + 4}"
+
+
+def format_target_cn(parts: dict[str, object]) -> str:
+    """Format target display for Chinese content.
+
+    Handles Chinese FYP shorthand, date patterns, and baseline prefixes.
+    The raw data columns already contain Chinese text; this function arranges
+    them into a natural Chinese reading order.
+
+    Returns Chinese text like:
+        "到2030年，实现1.3亿吨"
+        "十三五期间（2016-2020），下降18%"
+        "在2020年水平基础上，降低3.1%以上"
+    """
+    direction = clean_text(parts.get("Direction"))
+    magnitude = clean_text(parts.get("Target_Magnitude"))
+    baseline = clean_text(parts.get("Baseline"))
+    horizon = clean_text(parts.get("Target_Year_or_Period"))
+
+    elements: list[str] = []
+
+    # --- Horizon phrase ---
+    if horizon:
+        # Chinese FYP shorthand: 十三五, 十二五, etc.
+        fyp_match = re.fullmatch(r"十([一二三四五六七八九])?五", horizon)
+        if fyp_match:
+            year_range = _get_cn_fyp_year_range(horizon)
+            if year_range:
+                elements.append(f"{horizon}期间（{year_range}）")
+            else:
+                elements.append(f"{horizon}期间")
+        elif re.fullmatch(r"\d{4}", horizon):
+            elements.append(f"到{horizon}年")
+        elif re.fullmatch(r"\d{4}年前", horizon) or re.fullmatch(r"\d{4}年左右", horizon):
+            elements.append(f"在{horizon}")
+        elif re.match(r"\d{4}[-–]\d{4}", horizon):
+            elements.append(f"{horizon}期间")
+        elif _starts_with_letter(horizon):
+            elements.append(horizon)
+        else:
+            elements.append(f"在{horizon}")
+
+    # --- Baseline phrase ---
+    if baseline:
+        if baseline.isdigit():
+            elements.append(f"在{baseline}年水平基础上")
+        else:
+            elements.append(f"在{baseline}水平基础上")
+
+    # --- Direction + magnitude (Chinese convention: no space) ---
+    if direction and magnitude:
+        elements.append(f"{direction}{magnitude}")
+    elif direction:
+        elements.append(direction)
+    elif magnitude:
+        elements.append(magnitude)
+
+    if not elements:
+        return "无"
+
+    return "，".join(elements)
