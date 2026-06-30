@@ -5,6 +5,7 @@ import json
 import re
 from collections.abc import Sequence
 from i18n import i18n, LANG
+from data import CN_HEADER_MAP
 
 DEFAULT_DISPLAY_COLUMNS = ("Metric", "Announced", "Target", "Target_Category")
 
@@ -142,11 +143,16 @@ def output_paginated_table(
     rows = slice_df.to_dicts()
     metric_spans = _metric_rowspans(rows)
 
-    # Header (display underscores as spaces)
+    # Header — use Chinese labels in CN mode, underscore→space in EN mode
     thead = tags.thead(
         tags.tr(
             *(
-                tags.th(col.replace("_", " "), class_=_col_class(col))
+                tags.th(
+                    CN_HEADER_MAP.get(col, col.replace("_", " "))
+                    if LANG == "CN"
+                    else col.replace("_", " "),
+                    class_=_col_class(col),
+                )
                 for col in slice_df.columns
             )
         )
