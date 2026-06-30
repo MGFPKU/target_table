@@ -4,7 +4,7 @@ import math
 import json
 import re
 from collections.abc import Sequence
-from i18n import i18n, LANG
+from i18n import i18n, get_lang
 from data import CN_HEADER_MAP
 
 DEFAULT_DISPLAY_COLUMNS = ("Metric", "Announced", "Target", "Target_Category")
@@ -78,15 +78,15 @@ def render_dropdown(id: str, current: int, total: int):
         onchange=f'Shiny.setInputValue("{id}_page", parseInt(this.value), {{priority: "event"}})',
         # style="margin-left: 1em;",
     )
-    if LANG == "CN":
+    if get_lang() == "CN":
         text1 = (tags.span(i18n("第"), style="margin-left: 4px;"),)
         text2 = (tags.span(i18n("页")),)
         return (text1, dropdown, text2)
-    elif LANG == "EN":
+    elif get_lang() == "EN":
         text = (tags.span(i18n("页"), style="margin-left: 4px;"),)
         return (text, dropdown)
     else:
-        raise ValueError(f"Unsupported language: {LANG}")
+        raise ValueError(f"Unsupported language: {get_lang()}")
 
 
 def _col_class(col_name: str) -> str:
@@ -149,7 +149,7 @@ def output_paginated_table(
             *(
                 tags.th(
                     CN_HEADER_MAP.get(col, col.replace("_", " "))
-                    if LANG == "CN"
+                    if get_lang() == "CN"
                     else col.replace("_", " "),
                     class_=_col_class(col),
                 )

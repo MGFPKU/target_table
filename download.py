@@ -7,50 +7,55 @@ import httpx
 import base64
 import re
 
-from i18n import i18n, LANG
+from i18n import i18n, get_lang
 
 GOOGLE_SCRIPT_URL: str | None = os.getenv("GOOGLE_SCRIPT_URL")
 
-download_tab = ui.nav_panel(
-                    "download_panel",
-                    ui.HTML(f"{i18n("请填写您的机构名称和邮箱，以便我们通过邮件发送所选数据：")}<br><br>"),
-                    ui.input_text("user_inst", i18n("机构名称:"), placeholder=i18n("请输入机构名称")),
-                    ui.input_text("user_email", i18n("邮箱:"), placeholder=i18n("请输入邮箱")),
-                    ui.output_text(id="nrow"),
-                    ui.div(
-                        ui.layout_columns(
-                            ui.input_action_button(id="send_selected", label=i18n("发送结果")),
-                            ui.input_action_button(id="send_all", label=i18n("发送完整数据")),
-                            ui.input_action_button("back1", i18n("返回列表"))
-                        ),
-                        class_="detail-buttons",
-                    ),
-                    ui.tags.script("""
-                    document.addEventListener("DOMContentLoaded", function() {
-                        const email = localStorage.getItem("user_email");
-                        const inst = localStorage.getItem("user_inst");
-                        if (email) {
-                            const emailInput = document.getElementById("user_email");
-                            if (emailInput) {
-                                emailInput.value = email; // update UI
-                                //Shiny.setInputValue("user_email", email); // update server input
-                            }
-                        }
 
-                        if (inst) {
-                            const instInput = document.getElementById("user_inst");
-                            if (instInput) {
-                                instInput.value = inst;
-                                //Shiny.setInputValue("user_inst", inst);
-                            }
-                        }
-                    });
-                    Shiny.addCustomMessageHandler("storeUserInfo", function(message) {
-                        localStorage.setItem("user_email", message.email);
-                        localStorage.setItem("user_inst", message.inst);
-                    });
-                    """)
-                )
+def download_tab():
+    """Return the download tab panel.  Must be called inside a session render
+    so that i18n() picks up the per-session language."""
+    return ui.nav_panel(
+        "download_panel",
+        ui.HTML(f"{i18n("请填写您的机构名称和邮箱，以便我们通过邮件发送所选数据：")}<br><br>"),
+        ui.input_text("user_inst", i18n("机构名称:"), placeholder=i18n("请输入机构名称")),
+        ui.input_text("user_email", i18n("邮箱:"), placeholder=i18n("请输入邮箱")),
+        ui.output_text(id="nrow"),
+        ui.div(
+            ui.layout_columns(
+                ui.input_action_button(id="send_selected", label=i18n("发送结果")),
+                ui.input_action_button(id="send_all", label=i18n("发送完整数据")),
+                ui.input_action_button("back1", i18n("返回列表"))
+            ),
+            class_="detail-buttons",
+        ),
+        ui.tags.script("""
+        document.addEventListener("DOMContentLoaded", function() {
+            const email = localStorage.getItem("user_email");
+            const inst = localStorage.getItem("user_inst");
+            if (email) {
+                const emailInput = document.getElementById("user_email");
+                if (emailInput) {
+                    emailInput.value = email; // update UI
+                    //Shiny.setInputValue("user_email", email); // update server input
+                }
+            }
+
+            if (inst) {
+                const instInput = document.getElementById("user_inst");
+                if (instInput) {
+                    instInput.value = inst;
+                    //Shiny.setInputValue("user_inst", inst);
+                }
+            }
+        });
+        Shiny.addCustomMessageHandler("storeUserInfo", function(message) {
+            localStorage.setItem("user_email", message.email);
+            localStorage.setItem("user_inst", message.inst);
+        });
+        """)
+    )
+
 
 EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w{2,}$")
 
@@ -74,13 +79,14 @@ async def send_to_email(input, session, fmt: str, data: bytes | str):
         "inst": inst
     })
 
-    if LANG == "EN":
+    current_lang = get_lang()
+    if current_lang == "EN":
         subject = "MGF — Chinese National Climate Targets Data Download"
         base_name = "CHINA'S NATIONAL CLIMATE TARGETS DATABASE"
     else:
         subject = "来自MGF的中国国家气候目标数据下载"
         base_name = "中国国家气候目标数据库"
-    
+
     if fmt == "xlsx":
         if not isinstance(data, bytes):
             raise ValueError("Excel format requires binary data")
@@ -94,7 +100,7 @@ async def send_to_email(input, session, fmt: str, data: bytes | str):
         "email": email,
         "inst": inst,
         "format": fmt,
-        "lang": LANG,
+        "lang": current_lang,
         "content": content_b64,
         "baseName": base_name,
         "subject": subject,
