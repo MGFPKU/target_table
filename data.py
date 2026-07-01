@@ -205,7 +205,7 @@ def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
 
     Differences from _load_en_data():
       - Chinese source column names are renamed to internal English names
-      - No Count != "r" filter (Chinese data has no reference rows)
+      - Filters Count != "重申目标" (equivalent to English Count != "r")
       - Uses format_target_cn() for Chinese target display
       - Uses fill_null("无") instead of fill_null("N/A")
     """
@@ -219,7 +219,9 @@ def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
             .with_columns(pl.all().cast(pl.Utf8))
         )
         # Rename Chinese columns → internal English names
-        sheet = _rename_cn_columns(sheet)
+        sheet = _rename_cn_columns(sheet).filter(
+            pl.col("Count") != "重申目标"
+        )
 
         available_cols = [col for col in WANTED_COLS if col in sheet.columns]
         missing_cols = [col for col in WANTED_COLS if col not in sheet.columns]
