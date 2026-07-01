@@ -129,6 +129,7 @@ def output_paginated_table(
     page: int = 1,
     per_page: int = 10,
     display_columns: Sequence[str] = DEFAULT_DISPLAY_COLUMNS,
+    tooltip_col: str | None = None,
 ) -> Tag:
     # Extract page slice
     missing_cols = [col for col in display_columns if col not in df.columns]
@@ -138,7 +139,22 @@ def output_paginated_table(
     total_rows = df.shape[0]
     total_pages = max(math.ceil(total_rows / per_page), 1)
     start = (page - 1) * per_page
-    end = start + per_page
+
+    # Extract tooltip column values before we strip non-display columns
+    tooltip_values: list[str] | None = None
+    if tooltip_col is not None:
+        if tooltip_col not in df.columns:
+            raise ValueError(
+                f"Tooltip column '{tooltip_col}' not found in DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+        tooltip_values = (
+            df.select(tooltip_col)
+            .slice(start, per_page)
+            .to_series()
+            .to_list()
+        )
+
     slice_df = df.select(list(display_columns)).slice(start, per_page)
     rows = slice_df.to_dicts()
     metric_spans = _metric_rowspans(rows)
@@ -179,12 +195,15 @@ def output_paginated_table(
                     tags.td(_display_value(row[col_name]), class_=_col_class(col_name))
                 )
 
-        # Wrap the row with onclick handler
-        row_tag = tags.tr(
-            *row_cells,
-            onclick=f'Shiny.setInputValue("{id}", {json.dumps(policy_id)}, {{priority: "event"}});',
-            class_="clickable-row",
-        )
+        # Build row attributes with optional tooltip
+        row_attrs = {
+            "onclick": f'Shiny.setInputValue("{id}", {json.dumps(policy_id)}, {{priority: "event"}});',
+            "class_": "clickable-row",
+        }
+        if tooltip_values is not None:
+            row_attrs["title"] = _display_value(tooltip_values[row_index])
+
+        row_tag = tags.tr(*row_cells, **row_attrs)
         tbody.append(row_tag)
 
     # Pagination controls
@@ -251,6 +270,11 @@ def output_paginated_table(
                 /* Ensures no text underlines or color overrides interfere */
                 color: black;
                 text-decoration: none;
+            }
+
+            .clickable-row:hover {
+                background-color: #f0f8f5;
+                cursor: pointer;
             }
         """),
         tags.div(table, class_="custom-table-container"),
