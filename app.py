@@ -225,7 +225,7 @@ def server(input, output, session):
         try:
             table: Tag = output_paginated_table(
                 "mytable", data, page=current_page(),
-                display_columns=DISPLAY_COLS, tooltip_col="Document",
+                display_columns=DISPLAY_COLS, tooltip_col="Doc_Title",
             )
             return table
         except Exception as e:
