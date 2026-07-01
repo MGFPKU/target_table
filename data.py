@@ -280,7 +280,7 @@ def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
             pl.col("Document")
             .str.replace(r"\.(pdf|htm|html|docx?|PDF|HTM|HTML|DOCX?)$", "")
             .map_elements(
-                lambda code: doc_map.get(code, None),
+                lambda code: f"来源：{doc_map[code]}" if code in doc_map else None,
                 return_dtype=pl.Utf8,
             )
             .alias("Doc_Title"),
@@ -359,7 +359,7 @@ def _load_en_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
             pl.col("Document")
             .str.replace(r"\.(pdf|htm|html|docx?|PDF|HTM|HTML|DOCX?)$", "")
             .map_elements(
-                lambda code: doc_map.get(code, None),
+                lambda code: f"Source: {doc_map[code]}" if code in doc_map else None,
                 return_dtype=pl.Utf8,
             )
             .alias("Doc_Title"),
