@@ -150,6 +150,56 @@ def _rename_cn_columns(df: pl.DataFrame) -> pl.DataFrame:
     return df.rename(rename_map)
 
 
+def _build_doc_title_map(raw_xlsx: io.BytesIO, lang: str) -> dict[str, str]:
+    """Read the Sources sheet and return a mapping from document code → title.
+
+    The Sources sheet (``来源`` / ``Sources``) has multi-row headers and
+    interspersed category-label rows.  We locate the real header row (col 0
+    is ``编号`` or ``code``), then gather every data row whose first column
+    looks like a document code (e.g. ``HL2104``).
+
+    Returns a dict mapping the code to the document title in the current
+    language.
+    """
+    import re
+
+    sheet_name = "来源" if lang == "CN" else "Sources"
+    raw_xlsx.seek(0)
+    src = pl.read_excel(raw_xlsx, sheet_name=sheet_name, has_header=False)
+
+    # Find the header row — the row whose first cell is "编号" or "code"
+    header_row_idx: int | None = None
+    for i in range(len(src)):
+        cell = str(src.row(i)[0])
+        if cell in ("编号", "code"):
+            header_row_idx = i
+            break
+
+    if header_row_idx is None:
+        raise RuntimeError(
+            f"Could not find header row in '{sheet_name}' sheet"
+        )
+
+    # Build the mapping: row is data if col 0 looks like a doc code
+    code_re = re.compile(r"^[A-Z]+\d+")
+    doc_map: dict[str, str] = {}
+    for i in range(header_row_idx + 1, len(src)):
+        row = src.row(i)
+        code = str(row[0]) if row[0] is not None else ""
+        if not code_re.match(code):
+            continue  # category label, blank, or other non-data row
+
+        # Pick the title column for the current language
+        title = row[2]  # Chinese title
+        if lang == "EN":
+            title = row[3]  # English title
+
+        if title is not None and str(title).strip():
+            doc_map[code] = str(title).strip()
+
+    return doc_map
+
+
 def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
     """Load and process data from the Chinese Excel file.
 
@@ -201,6 +251,9 @@ def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
             "No sheets were processed. Check the Chinese Excel file."
         )
 
+    # Build document-code → title lookup from the Sources sheet
+    doc_map = _build_doc_title_map(raw_xlsx, lang)
+
     return (
         combined_sheet.fill_null("无")
         .with_columns(
@@ -223,6 +276,15 @@ def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
             nulls_last=True,
         )
         .drop(["_sort_target_year", "_sort_metric"])
+        .with_columns(
+            pl.col("Document")
+            .str.replace(r"\.(pdf|htm|html|docx?|PDF|HTM|HTML|DOCX?)$", "")
+            .map_elements(
+                lambda code: f"来源：{doc_map[code]}" if code in doc_map else None,
+                return_dtype=pl.Utf8,
+            )
+            .alias("Doc_Title"),
+        )
     )
 
 
@@ -268,6 +330,9 @@ def _load_en_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
             "No sheets were processed. Check sheets.json and dataset.xlsx"
         )
 
+    # Build document-code → title lookup from the Sources sheet
+    doc_map = _build_doc_title_map(raw_xlsx, lang)
+
     return (
         combined_sheet.fill_null("N/A")
         .with_columns(
@@ -290,6 +355,15 @@ def _load_en_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
             nulls_last=True,
         )
         .drop(["_sort_target_year", "_sort_metric"])
+        .with_columns(
+            pl.col("Document")
+            .str.replace(r"\.(pdf|htm|html|docx?|PDF|HTM|HTML|DOCX?)$", "")
+            .map_elements(
+                lambda code: f"Source: {doc_map[code]}" if code in doc_map else None,
+                return_dtype=pl.Utf8,
+            )
+            .alias("Doc_Title"),
+        )
     )
 
 
