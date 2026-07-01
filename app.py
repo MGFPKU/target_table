@@ -224,7 +224,8 @@ def server(input, output, session):
         data: pl.DataFrame = filtered()
         try:
             table: Tag = output_paginated_table(
-                "mytable", data, page=current_page(), display_columns=DISPLAY_COLS
+                "mytable", data, page=current_page(),
+                display_columns=DISPLAY_COLS, tooltip_col="Document",
             )
             return table
         except Exception as e:
