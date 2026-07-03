@@ -267,9 +267,9 @@ def _load_cn_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
         )
         .sort(
             by=[
+                "Target_Category",
                 "_sort_metric",
                 "Announced",
-                "Target_Category",
                 "_sort_target_year",
                 "Target_Year_or_Period",
                 "Target",
@@ -346,9 +346,9 @@ def _load_en_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
         )
         .sort(
             by=[
+                "Target_Category",
                 "_sort_metric",
                 "Announced",
-                "Target_Category",
                 "_sort_target_year",
                 "Target_Year_or_Period",
                 "Target",
