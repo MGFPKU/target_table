@@ -173,6 +173,10 @@ def server(input, output, session):
                 "tabview",
                 per_session_styles,
                 filter_bar,
+                ui.div(
+                    i18n("💡 悬停行上可查看来源文件"),
+                    style="font-size: 0.85em; color: #888; margin-top: 0.5em; margin-bottom: 0.5em;",
+                ),
                 ui.navset_hidden(
                     ui.nav_panel(
                         "table_panel",

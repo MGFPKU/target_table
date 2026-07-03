@@ -26,5 +26,6 @@
     "将通过邮件当前筛选结果，共 {} 条记录": "Sending the current filtered results via email, a total of {} records",
     "⚠️ 未找到政策详情。": "⚠️ Policy details not found.",
     "暂无详细描述内容。": "No detailed description available.",
-    "详情链接":  "Link to Details"
+    "详情链接":  "Link to Details",
+    "💡 悬停行上可查看来源文件": "💡 Tip: Hover over rows to view the source document"
 }
