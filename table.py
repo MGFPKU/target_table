@@ -190,6 +190,7 @@ def output_paginated_table(
                 if rowspan > 1:
                     cell_attrs["rowspan"] = str(rowspan)
                     cell_attrs["title"] = ""  # suppress tooltip on merged metric cells
+                    cell_attrs["style"] = "background-color: white;"
                 row_cells.append(tags.td(_display_value(row[col_name]), **cell_attrs))
             else:
                 row_cells.append(
