@@ -276,7 +276,6 @@ def output_paginated_table(
 
             .clickable-row:hover {
                 background-color: #f0f8f5;
-                cursor: pointer;
             }
         """),
         tags.div(table, class_="custom-table-container"),
