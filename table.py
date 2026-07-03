@@ -189,6 +189,8 @@ def output_paginated_table(
                 cell_attrs = {"class_": _col_class(col_name)}
                 if rowspan > 1:
                     cell_attrs["rowspan"] = str(rowspan)
+                    cell_attrs["title"] = ""  # suppress tooltip on merged metric cells
+                    cell_attrs["style"] = "background-color: white;"
                 row_cells.append(tags.td(_display_value(row[col_name]), **cell_attrs))
             else:
                 row_cells.append(
@@ -274,7 +276,6 @@ def output_paginated_table(
 
             .clickable-row:hover {
                 background-color: #f0f8f5;
-                cursor: pointer;
             }
         """),
         tags.div(table, class_="custom-table-container"),
