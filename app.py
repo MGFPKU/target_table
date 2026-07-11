@@ -122,11 +122,11 @@ def server(input, output, session):
         data = df()
 
         filter_bar = ui.layout_columns(
-            ui.input_select(
+            ui.input_selectize(
                 "target_horizon",
                 i18n("目标时间"),
-                choices=[i18n("全部")]
-                + sorted(data["Target_Year_or_Period"].unique().to_list()),
+                multiple=True,
+                choices=sorted(data["Target_Year_or_Period"].unique().to_list()),
             ),
             ui.input_select(
                 "target_category",
@@ -197,8 +197,10 @@ def server(input, output, session):
         set_language(lang())
         current_page.set(1)
         data = df()
-        if input.target_horizon() != i18n("全部"):
-            data = data.filter(pl.col("Target_Year_or_Period") == input.target_horizon())
+        if set(input.target_horizon()):
+            data = data.filter(
+                pl.col("Target_Year_or_Period").is_in(input.target_horizon())
+            )
         if input.target_category() != i18n("全部"):
             data = data.filter(
                 pl.col("Target_Category") == input.target_category()
