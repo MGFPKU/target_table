@@ -319,6 +319,7 @@ def _load_en_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
                 "Target_Magnitude",
                 "Baseline",
                 "Target_Year_or_Period",
+                "Announcement_Year",
             )
             .map_elements(format_target, return_dtype=pl.Utf8)
             .alias("Target"),
