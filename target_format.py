@@ -39,11 +39,19 @@ def _starts_with_letter(text: str) -> bool:
     return bool(stripped) and stripped[0].isalpha()
 
 
+def _extract_year(text: str) -> int | None:
+    match = re.fullmatch(r"(\d{4})(?:\.0+)?", text)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
 def format_target(parts: dict[str, object]) -> str:
     direction = clean_text(parts.get("Direction"))
     magnitude = clean_text(parts.get("Target_Magnitude"))
     baseline = clean_text(parts.get("Baseline"))
     horizon = clean_text(parts.get("Target_Year_or_Period"))
+    announced_year = _extract_year(clean_text(parts.get("Announcement_Year")))
 
     target_phrase = " ".join(part for part in [direction, magnitude] if part)
     if baseline:
@@ -67,7 +75,11 @@ def format_target(parts: dict[str, object]) -> str:
                 period = f"{period} ({year_range})"
             prefix = f"during {period}"
         elif re.fullmatch(r"\d{4}", horizon):
-            prefix = f"by {horizon}"
+            target_year = int(horizon)
+            if announced_year in (target_year, target_year - 1):
+                prefix = f"in {horizon}"
+            else:
+                prefix = f"by {horizon}"
         elif _starts_with_letter(horizon):
             prefix = horizon
         else:
@@ -221,6 +233,7 @@ def format_target_cn(parts: dict[str, object]) -> str:
     magnitude = clean_text(parts.get("Target_Magnitude"))
     baseline = clean_text(parts.get("Baseline"))
     horizon = clean_text(parts.get("Target_Year_or_Period"))
+    announced_year = _extract_year(clean_text(parts.get("Announcement_Year")))
 
     elements: list[str] = []
 
@@ -236,7 +249,11 @@ def format_target_cn(parts: dict[str, object]) -> str:
             else:
                 elements.append(f"{horizon}期间")
         elif re.fullmatch(r"\d{4}", horizon):
-            elements.append(f"到{horizon}年")
+            target_year = int(horizon)
+            if announced_year in (target_year, target_year - 1):
+                elements.append(f"在{horizon}年")
+            else:
+                elements.append(f"到{horizon}年")
         elif re.fullmatch(r"\d{4}年前", horizon) or re.fullmatch(r"\d{4}年左右", horizon):
             # "2030年前" / "2030年左右" are already natural temporal phrases
             elements.append(horizon)
