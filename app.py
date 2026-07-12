@@ -53,6 +53,7 @@ _static_styles = ui.tags.style("""
         width: 20px;
         height: 20px;
         fill: #333;
+        display: block;
     }
 
     .detail-buttons {
@@ -147,21 +148,21 @@ def server(input, output, session):
                 ),
                 ui.input_action_button(
                     "download",
-                    "",
-                    class_="download-icon",
-                    icon=ui.tags.svg(
+                    ui.tags.svg(
                         {
                             "xmlns": "http://www.w3.org/2000/svg",
                             "viewBox": "0 0 24 24",
                             "fill": "currentColor",
                             "height": "20",
                             "width": "20",
+                            "aria-hidden": "true",
                         },
                         Tag(
                             "path",
                             d="M5 20h14v-2H5v2zm7-18v12l5-5h-3V4h-4v5H7l5 5V2z",
                         ),
                     ),
+                    class_="download-icon",
                 ),
                 class_="col-sm-2",
                 style="display: flex; flex-direction: column; align-items: start; justify-content: end;",
