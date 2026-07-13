@@ -24,6 +24,7 @@
     "📬 数据已发送至邮箱": "📬 Data has been sent to your email.",
     "❌ 数据发送失败: {}": "❌ Data sending failed: {}",
     "将通过邮件当前筛选结果，共 {} 条记录": "Sending the current filtered results via email, a total of {} records",
+    "共 {} 条记录": "{} records found",
     "⚠️ 未找到政策详情。": "⚠️ Policy details not found.",
     "暂无详细描述内容。": "No detailed description available.",
     "详情链接":  "Link to Details",

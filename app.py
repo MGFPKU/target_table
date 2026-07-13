@@ -234,7 +234,13 @@ def server(input, output, session):
                 "mytable", data, page=current_page(),
                 display_columns=DISPLAY_COLS, tooltip_col="Doc_Title",
             )
-            return table
+            return ui.div(
+                ui.div(
+                    i18n("共 {} 条记录", data.height),
+                    style="color: #666; margin: 0.5em 0;",
+                ),
+                table,
+            )
         except Exception as e:
             print("⚠️ Error rendering table:", e)
             return ui.markdown(f"**Error rendering table:** `{e}`")
