@@ -192,6 +192,77 @@ def server(input, output, session):
 
     current_page = reactive.value(1)
     focused_policy = reactive.value(None)
+    last_horizon_update = reactive.value(None)
+    last_category_update = reactive.value(None)
+
+    @reactive.effect
+    def _sync_target_horizon_choices():
+        """Limit target horizons to those available for the selected category."""
+        set_language(lang())
+        all_label = i18n("全部")
+        selected_category = input.target_category()
+        if selected_category is None:
+            return
+
+        data = df()
+        if selected_category != all_label:
+            data = data.filter(
+                pl.col("Target_Category") == selected_category
+            )
+
+        choices = sorted(
+            data["Target_Year_or_Period"].unique().to_list()
+        )
+        with reactive.isolate():
+            current_selection = input.target_horizon() or ()
+            previous_update = last_horizon_update()
+        selected = [value for value in current_selection if value in choices]
+        update = (tuple(choices), tuple(selected))
+
+        if update != previous_update:
+            last_horizon_update.set(update)
+            ui.update_selectize(
+                "target_horizon",
+                choices=choices,
+                selected=selected,
+            )
+
+    @reactive.effect
+    def _sync_target_category_choices():
+        """Limit target categories to those available for selected horizons."""
+        set_language(lang())
+        selected_horizons = input.target_horizon()
+        if selected_horizons is None:
+            return
+
+        data = df()
+        if selected_horizons:
+            data = data.filter(
+                pl.col("Target_Year_or_Period").is_in(selected_horizons)
+            )
+
+        all_label = i18n("全部")
+        available_categories = sorted(
+            data["Target_Category"].unique().to_list()
+        )
+        choices = [all_label, *available_categories]
+        with reactive.isolate():
+            current_selection = input.target_category()
+            previous_update = last_category_update()
+        selected = (
+            current_selection
+            if current_selection in available_categories
+            else all_label
+        )
+        update = (tuple(choices), selected)
+
+        if update != previous_update:
+            last_category_update.set(update)
+            ui.update_select(
+                "target_category",
+                choices=choices,
+                selected=selected,
+            )
 
     @reactive.Calc
     def filtered():
