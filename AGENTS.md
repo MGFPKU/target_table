@@ -16,7 +16,7 @@ There are no tests or linting configured (`uv` with pyproject.toml, no pytest/ru
 This is a **Shiny for Python** app that displays China's national climate policy targets in a paginated, filterable table. The live app fetches its dataset from GitHub Releases on every cold start; a `LOCAL_DATA=TRUE` env var switches it to a local file for development.
 
 **Data flow:**
-1. `fetch_raw_data()` in `data.py` downloads `dataset.xlsx` from the latest GitHub release of `MGFPKU/target_dataset` (or reads a local file).
+1. `fetch_raw_data()` in `data.py` downloads `Targets_cn.xlsx` / `Targets_en.xlsx` from the latest GitHub release of `MGFPKU/target_dataset` (or reads a local file).
 2. `get_data()` loads each sheet listed in `sheets.json`, merges them with Polars, applies `clean_text` + `format_target` from `target_format.py` to build the `Target` display column, and sorts the merged DataFrame.
 3. `app.py` holds the Shiny UI (`app_ui`) and server function. Filters on target horizon, category, and keyword produce a `filtered()` reactive calc; the table output delegates to `output_paginated_table()`.
 4. `table.py` renders an HTML table with manual pagination controls (buttons + dropdown). Rows share a `rowspan` on the `Metric` column for consecutive identical metrics. Clicking a row fires a Shiny input event.
@@ -41,4 +41,4 @@ This is a **Shiny for Python** app that displays China's national climate policy
 
 ## Sheets configuration
 
-`sheets.json` lists the source sheets inside `dataset.xlsx` that are read and concatenated. The "Energy|Power" entry covers two identically-structured sheets that `pl.read_excel` treats as a single sheet name.
+`sheets.json` lists the source sheets inside the dataset files (`Targets_cn.xlsx` / `Targets_en.xlsx`) that are read and concatenated. The "Energy|Power" entry covers two identically-structured sheets that `pl.read_excel` treats as a single sheet name.

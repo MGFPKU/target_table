@@ -70,7 +70,7 @@ LANGUAGE=EN
 
 Below is what each variable does:
 
-- `GITHUB_TOKEN`: a GitHub Personal Access Token (PAT) with read access to the `MGFPKU/target_dataset` repository. The app uses this token to download `dataset.xlsx` from the latest release. Keep this token private (do not commit it).
+- `GITHUB_TOKEN`: a GitHub Personal Access Token (PAT) with read access to the `MGFPKU/target_dataset` repository. The app uses this token to download `Targets_cn.xlsx` / `Targets_en.xlsx` from the latest release. Keep this token private (do not commit it).
 - `GOOGLE_SCRIPT_URL`: the public URL for a Google Apps Script web app that acts as the mailing bot. The Shiny app POSTs filtered exports (XLSX) to this endpoint and the script forwards them by email.
 - `LANGUAGE`: set the UI language for the app. Use `EN` for English or `CN` for Chinese. The value controls which translations are displayed in the interface.
 
@@ -102,7 +102,7 @@ download.py           # Download UI and mailing helpers (POSTs to Google Script)
 data.py               # Data fetching and processing logic
 i18n.py               # Translation helper; reads LANGUAGE to switch UI
 translation.json      # Translation strings used by `i18n.py`
-sheets.json           # Sheet names and source sheet config for dataset.xlsx
+sheets.json           # Sheet names and source sheet config for Targets_cn.xlsx / Targets_en.xlsx
 pyproject.toml        # Project metadata / build config (managed by uv)
 .python-version       # Python version pinning for uv
 requirements.txt      # Dependency pins (optional with pyproject)
@@ -114,7 +114,7 @@ README.md             # Project documentation (this file)
 Notes:
 - Edit `app.py` to change high-level UI or filtering logic.
 - `table.py` controls how target rows are rendered.
-- `data.py` handles fetching and parsing `dataset.xlsx` from the latest GitHub release.
+- `data.py` handles fetching and parsing `Targets_cn.xlsx` / `Targets_en.xlsx` from the latest GitHub release.
 - `download.py` integrates with the Google Apps Script mailing bot (set via `GOOGLE_SCRIPT_URL`).
 
 
