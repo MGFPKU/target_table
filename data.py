@@ -11,7 +11,7 @@ REPO = "MGFPKU/target_dataset"
 LOCAL_DATA: bool = os.getenv("LOCAL_DATA", "FALSE").upper() == "TRUE"
 
 # GitHub release asset name per language
-_ASSET_NAME = {"CN": "Targets_cn.xlsx", "EN": "Targets_en.xlsx"}
+_ASSET_NAME = {"CN": "China_Climate_Target_Tracker_cn.xlsx", "EN": "China_Climate_Target_Tracker_en.xlsx"}
 
 DISPLAY_COLS = [
     "Metric",
@@ -331,7 +331,7 @@ def _load_en_data(raw_xlsx: io.BytesIO, lang: str) -> pl.DataFrame:
 
     if combined_sheet is None:
         raise RuntimeError(
-            "No sheets were processed. Check sheets.json and Targets_cn.xlsx / Targets_en.xlsx"
+            "No sheets were processed. Check sheets.json and China_Climate_Target_Tracker_cn.xlsx / China_Climate_Target_Tracker_en.xlsx"
         )
 
     # Build document-code → title lookup from the Sources sheet

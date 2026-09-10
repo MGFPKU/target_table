@@ -317,7 +317,11 @@ def server(input, output, session):
 
     def _download_filename() -> str:
         set_language(lang())
-        base_name = i18n("中国国家气候目标数据库")
+        base_name = (
+            "China_Climate_Target_Tracker_cn"
+            if get_lang() == "CN"
+            else "China_Climate_Target_Tracker_en"
+        )
         if has_filters():
             return f"{base_name}_{i18n('筛选结果')}.xlsx"
         return f"{base_name}.xlsx"
