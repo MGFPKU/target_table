@@ -6,7 +6,6 @@ import polars as pl
 import io
 
 from table import output_paginated_table
-from download import download_tab, send_to_email
 from data import DISPLAY_COLS, get_data, fetch_raw_data, CN_HEADER_MAP
 from i18n import i18n, get_lang, set_language
 
@@ -116,7 +115,7 @@ def server(input, output, session):
         # Per-session CSS that uses i18n (tooltip text)
         per_session_styles = ui.tags.style(f"""
             .download-icon:hover::after {{
-                content: '{i18n("下载已选或全部数据")}';
+                content: '{i18n("下载筛选结果或完整数据集")}';
             }}
         """)
 
@@ -146,8 +145,8 @@ def server(input, output, session):
                     class_="form-label",
                     style="visibility: hidden;",
                 ),
-                ui.input_action_button(
-                    "download",
+                ui.download_button(
+                    "download_data",
                     ui.tags.svg(
                         {
                             "xmlns": "http://www.w3.org/2000/svg",
@@ -178,14 +177,7 @@ def server(input, output, session):
                     i18n("💡 悬停行上可查看来源文件"),
                     style="font-size: 0.85em; color: #888; margin-top: 0.5em; margin-bottom: 0.5em;",
                 ),
-                ui.navset_hidden(
-                    ui.nav_panel(
-                        "table_panel",
-                        ui.output_ui(id="table_ui"),
-                    ),
-                    download_tab(),
-                    id="table_download",
-                ),
+                ui.output_ui(id="table_ui"),
             ),
             id="view",
         )
@@ -264,12 +256,8 @@ def server(input, output, session):
                 selected=selected,
             )
 
-    @reactive.Calc
-    def filtered():
-        set_language(lang())
-        current_page.set(1)
-        data = df()
-        if set(input.target_horizon()):
+    def _apply_filters(data: pl.DataFrame) -> pl.DataFrame:
+        if input.target_horizon():
             data = data.filter(
                 pl.col("Target_Year_or_Period").is_in(input.target_horizon())
             )
@@ -277,23 +265,34 @@ def server(input, output, session):
             data = data.filter(
                 pl.col("Target_Category") == input.target_category()
             )
-        if input.keyword():
-            keyword: str = input.keyword().lower().strip()
-            if keyword:
-                string_cols = ["Metric", "Target"]
-
-                if string_cols:
-                    filter_expr = pl.fold(
-                        acc=pl.lit(False),
-                        exprs=[
-                            pl.col(col).str.to_lowercase().str.contains(keyword)
-                            for col in string_cols
-                        ],
-                        function=lambda acc, expr: acc | expr,
-                    )
-                    data = data.filter(filter_expr)
-
+        keyword: str = (input.keyword() or "").lower().strip()
+        if keyword:
+            string_cols = ["Metric", "Target"]
+            filter_expr = pl.fold(
+                acc=pl.lit(False),
+                exprs=[
+                    pl.col(col).str.to_lowercase().str.contains(keyword)
+                    for col in string_cols
+                ],
+                function=lambda acc, expr: acc | expr,
+            )
+            data = data.filter(filter_expr)
         return data
+
+    @reactive.Calc
+    def filtered():
+        set_language(lang())
+        current_page.set(1)
+        return _apply_filters(df())
+
+    @reactive.calc
+    def has_filters() -> bool:
+        set_language(lang())
+        if input.target_horizon():
+            return True
+        if input.target_category() != i18n("全部"):
+            return True
+        return bool((input.keyword() or "").strip())
 
     @output
     @render.ui  # table
@@ -316,48 +315,28 @@ def server(input, output, session):
             print("⚠️ Error rendering table:", e)
             return ui.markdown(f"**Error rendering table:** `{e}`")
 
-    @reactive.effect
-    @reactive.event(input.download)
-    async def _():
-        ui.update_navs("table_download", selected="download_panel")
-
-    @render.text
-    def nrow():
+    def _download_filename() -> str:
         set_language(lang())
-        return i18n("将通过邮件当前筛选结果，共 {} 条记录", filtered().shape[0])
+        base_name = i18n("中国国家气候目标数据库")
+        if has_filters():
+            return f"{base_name}_{i18n('筛选结果')}.xlsx"
+        return f"{base_name}.xlsx"
 
-    @reactive.effect
-    @reactive.event(input.send_all)
-    async def _():
-        raw_data = fetch_raw_data(lang())
-        await send_to_email(input, session, "xlsx", raw_data.getvalue())
-
-    @reactive.effect
-    @reactive.event(input.send_selected)
-    async def _():
+    @render.download(filename=_download_filename)
+    def download_data():
         set_language(lang())
-        # Step 1: Write Excel to in-memory buffer
-        buffer = io.BytesIO()
-        display_data(filtered()).write_excel(buffer)
-        buffer.seek(0)
-
-        # Step 2: Send Excel to email
-        await send_to_email(input, session, "xlsx", buffer.getvalue())
+        if has_filters():
+            buffer = io.BytesIO()
+            display_data(_apply_filters(df())).write_excel(buffer)
+            buffer.seek(0)
+            yield buffer.getvalue()
+        else:
+            yield fetch_raw_data(lang()).getvalue()
 
     @reactive.effect
     @reactive.event(input.mytable_page)
     async def _():
         current_page.set(input.mytable_page())
-
-    @reactive.effect
-    @reactive.event(input.back)
-    async def _():
-        ui.update_navs("view", selected="tabview")
-
-    @reactive.effect
-    @reactive.event(input.back1)
-    async def _():
-        ui.update_navs("table_download", selected="table_panel")
 
 
 app = App(app_ui, server, debug=False)

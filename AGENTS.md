@@ -20,18 +20,17 @@ This is a **Shiny for Python** app that displays China's national climate policy
 2. `get_data()` loads each sheet listed in `sheets.json`, merges them with Polars, applies `clean_text` + `format_target` from `target_format.py` to build the `Target` display column, and sorts the merged DataFrame.
 3. `app.py` holds the Shiny UI (`app_ui`) and server function. Filters on target horizon, category, and keyword produce a `filtered()` reactive calc; the table output delegates to `output_paginated_table()`.
 4. `table.py` renders an HTML table with manual pagination controls (buttons + dropdown). Rows share a `rowspan` on the `Metric` column for consecutive identical metrics. Clicking a row fires a Shiny input event.
-5. `download.py` handles the email export tab: it POSTs base64-encoded XLSX to a Google Apps Script endpoint, which forwards the file by email.
+5. Downloads are handled directly in `app.py`: a `ui.download_button` in the filter bar triggers a `@render.download` handler. With active filters (horizon/category/keyword) it writes the filtered display table to an in-memory XLSX; with no filters it streams the raw release XLSX (`fetch_raw_data()`). The filename gets a `_筛选结果` / `_Filtered Results` suffix for filtered exports.
 
 **i18n:** `i18n.py` reads `LANGUAGE` (CN/EN) — CN returns keys verbatim, EN looks them up in `translation.json`. The `i18n()` function supports `str.format` placeholders.
 
-**Key dependencies:** `shiny`, `polars`, `fastexcel` (fast Excel reading), `xlsxwriter`, `httpx`.
+**Key dependencies:** `shiny`, `polars`, `fastexcel` (fast Excel reading), `xlsxwriter`.
 
 ## Environment variables
 
 | Variable | Purpose |
 |---|---|
 | `GITHUB_TOKEN` | PAT with read access to `MGFPKU/target_dataset` |
-| `GOOGLE_SCRIPT_URL` | Google Apps Script web app for email delivery |
 | `LANGUAGE` | `CN` (default) or `EN` |
 | `LOCAL_DATA` | Set to `TRUE` to load a local Excel file instead of GitHub |
 

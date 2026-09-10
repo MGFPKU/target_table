@@ -14,7 +14,7 @@ This app visualizes a curated dataset of China's national climate policy targets
 
 - 🔎 Filtering by target horizon, target category, and keyword
 - 🧾 Paginated table view with clickable rows
-- 📥 Export of filtered or full results (XLSX, sent by email)
+- 📥 Direct XLSX download of filtered results or the full dataset
 
 Powered by:
 
@@ -29,7 +29,7 @@ Powered by:
 
 - Paginated and stylized data table
 - Filter by target horizon, target category, and keyword
-- XLSX export of current filtered or full results (sent via email)
+- One-click XLSX download: filtered results when filters are active, otherwise the full dataset
 - Integrated GitHub data sync (fetches latest release from `MGFPKU/target_dataset`)
 - Bilingual UI (Chinese / English, controlled by `LANGUAGE` env var)
 - Modern UI with iconography, tooltips, and layout styling
@@ -64,14 +64,12 @@ You'll need to set the token in a `.env` file like:
 
 ```env
 GITHUB_TOKEN=ghp_...
-GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/...
 LANGUAGE=EN
 ```
 
 Below is what each variable does:
 
 - `GITHUB_TOKEN`: a GitHub Personal Access Token (PAT) with read access to the `MGFPKU/target_dataset` repository. The app uses this token to download `Targets_cn.xlsx` / `Targets_en.xlsx` from the latest release. Keep this token private (do not commit it).
-- `GOOGLE_SCRIPT_URL`: the public URL for a Google Apps Script web app that acts as the mailing bot. The Shiny app POSTs filtered exports (XLSX) to this endpoint and the script forwards them by email.
 - `LANGUAGE`: set the UI language for the app. Use `EN` for English or `CN` for Chinese. The value controls which translations are displayed in the interface.
 
 ### 4. Run the app
@@ -96,9 +94,8 @@ The repository layout and purpose of key files:
 
 ```
 .env                  # Environment variables (not committed, create locally following setup instructions)
-app.py                # Main Shiny app (UI + server)
+app.py                # Main Shiny app (UI + server, incl. direct download handler)
 table.py              # Paginated table output and helpers
-download.py           # Download UI and mailing helpers (POSTs to Google Script)
 data.py               # Data fetching and processing logic
 i18n.py               # Translation helper; reads LANGUAGE to switch UI
 translation.json      # Translation strings used by `i18n.py`
@@ -112,10 +109,9 @@ README.md             # Project documentation (this file)
 ```
 
 Notes:
-- Edit `app.py` to change high-level UI or filtering logic.
+- Edit `app.py` to change high-level UI, filtering logic, or the download handler.
 - `table.py` controls how target rows are rendered.
 - `data.py` handles fetching and parsing `Targets_cn.xlsx` / `Targets_en.xlsx` from the latest GitHub release.
-- `download.py` integrates with the Google Apps Script mailing bot (set via `GOOGLE_SCRIPT_URL`).
 
 
 ## 📚 Citation

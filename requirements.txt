@@ -2,5 +2,4 @@ polars>=1.42.1
 requests>=2.34.2
 shiny>=1.6.3
 xlsxwriter>=3.2.9
-httpx>=0.28.1
 fastexcel>=0.20.2
