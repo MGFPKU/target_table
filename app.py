@@ -10,6 +10,30 @@ from data import DISPLAY_COLS, get_data, fetch_raw_data, CN_HEADER_MAP
 from i18n import i18n, get_lang, set_language
 
 
+# CN search synonyms: normalise GDP aliases so e.g. 单位GDP能耗 also finds
+# rows whose metric is written 单位国内生产总值能耗 / 单位国内生产总值（GDP）用水量.
+_CN_SEARCH_ALIASES = [
+    ("单位gdp", "单位国内生产总值"),
+    ("万元gdp", "万元国内生产总值"),
+    ("gdp", "国内生产总值"),
+]
+
+
+def _normalize_cn_search(text: str) -> str:
+    for src, dst in _CN_SEARCH_ALIASES:
+        text = text.replace(src, dst)
+    return text.replace("（国内生产总值）", "").replace("(国内生产总值)", "")
+
+
+def _cn_search_expr(col: str) -> pl.Expr:
+    expr = pl.col(col).str.to_lowercase()
+    for src, dst in _CN_SEARCH_ALIASES:
+        expr = expr.str.replace_all(src, dst, literal=True)
+    return expr.str.replace_all("（国内生产总值）", "", literal=True).str.replace_all(
+        "(国内生产总值)", "", literal=True
+    )
+
+
 def display_data(data: pl.DataFrame) -> pl.DataFrame:
     df = data.select(DISPLAY_COLS)
     if get_lang() == "CN":
@@ -268,12 +292,20 @@ def server(input, output, session):
         keyword: str = (input.keyword() or "").lower().strip()
         if keyword:
             string_cols = ["Metric", "Target"]
-            filter_expr = pl.fold(
-                acc=pl.lit(False),
-                exprs=[
+            if get_lang() == "CN":
+                keyword = _normalize_cn_search(keyword)
+                exprs = [
+                    _cn_search_expr(col).str.contains(keyword)
+                    for col in string_cols
+                ]
+            else:
+                exprs = [
                     pl.col(col).str.to_lowercase().str.contains(keyword)
                     for col in string_cols
-                ],
+                ]
+            filter_expr = pl.fold(
+                acc=pl.lit(False),
+                exprs=exprs,
                 function=lambda acc, expr: acc | expr,
             )
             data = data.filter(filter_expr)
