@@ -1,4 +1,4 @@
-polars>=1.42.1
+polars>=1.42.1,<1.43
 requests>=2.34.2
 shiny>=1.6.3
 xlsxwriter>=3.2.9
