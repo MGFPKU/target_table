@@ -9,6 +9,7 @@ from target_format import clean_text, format_target, format_target_cn
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO = "MGFPKU/target_dataset"
 LOCAL_DATA: bool = os.getenv("LOCAL_DATA", "FALSE").upper() == "TRUE"
+LOCAL_DATA_DIR = os.getenv("LOCAL_DATA_DIR", "../target_dataset")
 
 # GitHub release asset name per language
 _ASSET_NAME = {"CN": "China_Climate_Target_Tracker_cn.xlsx", "EN": "China_Climate_Target_Tracker_en.xlsx"}
@@ -33,9 +34,6 @@ WANTED_COLS = [
     "Document",
     "Topic_Label",
 ]
-
-# Chinese local file support ------------------------------------------------
-CN_LOCAL_FILE = "../中国国家气候目标数据库.xlsx"
 
 # Chinese source column name → internal English name
 CN_COLUMN_MAP: dict[str, str] = {
@@ -82,10 +80,7 @@ def _resolve_lang(lang: str | None) -> str:
 def fetch_raw_data(lang: str | None = None) -> io.BytesIO:
     lang = _resolve_lang(lang)
     if LOCAL_DATA:
-        if lang == "CN":
-            file_path = CN_LOCAL_FILE
-        else:
-            file_path = "../CHINA'S NATIONAL CLIMATE TARGETS DATABASE.xlsx"
+        file_path = os.path.join(LOCAL_DATA_DIR, _ASSET_NAME[lang])
         with open(file_path, "rb") as f:
             print(f"Using local data ({file_path})...")
             return io.BytesIO(f.read())
