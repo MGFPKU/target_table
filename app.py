@@ -139,7 +139,7 @@ def server(input, output, session):
         # Per-session CSS that uses i18n (tooltip text)
         per_session_styles = ui.tags.style(f"""
             .download-icon:hover::after {{
-                content: '{i18n("下载筛选结果或完整数据集")}';
+                content: '{i18n("下载数据")}';
             }}
         """)
 
